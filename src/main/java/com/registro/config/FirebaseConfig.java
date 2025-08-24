@@ -9,16 +9,15 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 
-import java.io.ByteArrayInputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 
 @Configuration
 public class FirebaseConfig {
 
-    @Value("${firebase.credentials}")
-    private String firebaseCredentials;
+    @Value("${firebase.json.path:#{null}}")
+    private String firebaseJsonPath;
 
     @Value("${firebase.storage.bucket}")
     private String storageBucket;
@@ -27,11 +26,11 @@ public class FirebaseConfig {
     public FirebaseApp initializeFirebase() throws IOException {
         InputStream serviceAccount;
 
-        if (firebaseCredentials != null && !firebaseCredentials.isEmpty()) {
-            // Producción: Usa las credenciales de la variable de entorno
-            serviceAccount = new ByteArrayInputStream(firebaseCredentials.getBytes(StandardCharsets.UTF_8));
+        if (firebaseJsonPath != null && !firebaseJsonPath.isEmpty()) {
+            // Producción: Lee el archivo desde la ruta especificada por la variable de entorno
+            serviceAccount = new FileInputStream(firebaseJsonPath);
         } else {
-            // Desarrollo: Usa el archivo local
+            // Desarrollo: Usa el archivo local del classpath
             ClassPathResource serviceAccountResource = new ClassPathResource("registro.json");
             serviceAccount = serviceAccountResource.getInputStream();
         }
