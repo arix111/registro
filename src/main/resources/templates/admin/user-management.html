@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Gestión de Usuarios - Sistema de Registro</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .user-card {
+            transition: all 0.3s ease;
+            border: 1px solid #dee2e6;
+        }
+        .user-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+        .role-badge {
+            font-size: 0.8em;
+        }
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+        .status-active { background-color: #28a745; }
+        .status-inactive { background-color: #dc3545; }
+
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" th:href="@{/admin/dashboard}">
+                <i class="bi bi-shield-check me-2"></i>
+                Admin Panel
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a href="/dashboard" class="nav-link me-3">
+                    <i class="bi bi-house-door me-1"></i> Inicio
+                </a>
+                <span class="navbar-text me-3">
+                    <i class="bi bi-person-circle me-1"></i>
+                    <span sec:authentication="name"></span>
+                </span>
+                <a class="nav-link" th:href="@{/logout}">
+                    <i class="bi bi-box-arrow-right"></i> Salir
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2><i class="bi bi-people me-2"></i>Gestión de Usuarios</h2>
+                        <p class="text-muted">Crear y administrar usuarios del sistema</p>
+                    </div>
+                    <a th:href="@{/admin/usuarios/nuevo}" class="btn btn-success">
+                        <i class="bi bi-person-plus me-2"></i>Nuevo Usuario
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mensajes de alerta -->
+        <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle me-2"></i>
+            <span th:text="${successMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            <span th:text="${errorMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- Estadísticas -->
+        <div class="row mb-4" th:if="${userStats}">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 th:text="${userStats.totalUsers}">0</h4>
+                                <p class="mb-0">Total Usuarios</p>
+                            </div>
+                            <i class="bi bi-people fs-1 opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 th:text="${userStats.activeUsers}">0</h4>
+                                <p class="mb-0">Activos</p>
+                            </div>
+                            <i class="bi bi-person-check fs-1 opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 th:text="${userStats.adminUsers}">0</h4>
+                                <p class="mb-0">Administradores</p>
+                            </div>
+                            <i class="bi bi-shield-check fs-1 opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 th:text="${userStats.managerUsers}">0</h4>
+                                <p class="mb-0">Gerentes</p>
+                            </div>
+                            <i class="bi bi-person-badge fs-1 opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Barra de búsqueda -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <form th:action="@{/admin/usuarios/buscar}" method="get" class="d-flex">
+                            <input type="text" 
+                                   class="form-control me-2" 
+                                   name="searchTerm" 
+                                   th:value="${searchTerm}"
+                                   placeholder="Buscar por nombre, apellido o usuario...">
+                            <button type="submit" class="btn btn-outline-primary">
+                                <i class="bi bi-search"></i>
+                            </button>
+                            <a th:href="@{/admin/usuarios}" class="btn btn-outline-secondary ms-2">
+                                <i class="bi bi-arrow-clockwise"></i>
+                            </a>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lista de usuarios -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-list me-2"></i>Lista de Usuarios</h5>
+                    </div>
+                    <div class="card-body">
+                        <div th:if="${usuarios.empty}" class="text-center py-4">
+                            <i class="bi bi-person-x fs-1 text-muted"></i>
+                            <p class="text-muted mt-2">No se encontraron usuarios</p>
+                        </div>
+
+                        <div th:if="${!usuarios.empty}" class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Estado</th>
+                                        <th>Usuario</th>
+                                        <th>Nombre Completo</th>
+                                        <th>Email</th>
+                                        <th>Rol</th>
+                                        <th>Creado</th>
+                                        <th>Último Login</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="usuario : ${usuarios}">
+                                        <td>
+                                            <span th:class="${usuario.enabled} ? 'status-indicator status-active' : 'status-indicator status-inactive'"></span>
+                                            <span th:text="${usuario.enabled} ? 'Activo' : 'Inactivo'" 
+                                                  th:class="${usuario.enabled} ? 'text-success' : 'text-danger'"></span>
+                                        </td>
+                                        <td>
+                                            <strong th:text="${usuario.username}"></strong>
+                                        </td>
+                                        <td th:text="${usuario.fullName}"></td>
+                                        <td th:text="${usuario.email}"></td>
+                                        <td>
+                                            <form th:action="@{/admin/usuarios/actualizar-rol}" method="post" class="d-inline">
+                                                <input type="hidden" name="userId" th:value="${usuario.id}">
+                                                <select name="newRole" class="form-select form-select-sm" 
+                                                        onchange="this.form.submit()"
+                                                        th:disabled="${usuario.username == #authentication.name}">
+                                                    <option th:each="role : ${roles}" 
+                                                            th:value="${role}" 
+                                                            th:text="${role.displayName}"
+                                                            th:selected="${role == usuario.role}"></option>
+                                                </select>
+                                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                                            </form>
+                                        </td>
+                                        <td th:text="${#temporals.format(usuario.createdAt, 'dd/MM/yyyy HH:mm')}"></td>
+                                        <td th:text="${usuario.lastLogin != null ? #temporals.format(usuario.lastLogin, 'dd/MM/yyyy HH:mm') : 'Nunca'}"></td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <!-- Change Password -->
+                                                <button type="button" 
+                                                        class="btn btn-outline-info"
+                                                        data-bs-toggle="modal" 
+                                                        th:data-bs-target="'#changePasswordModal' + ${usuario.id}"
+                                                        title="Cambiar Contraseña">
+                                                    <i class="bi bi-key"></i>
+                                                </button>
+                                                
+                                                <!-- Toggle Status -->
+                                                <form th:action="@{/admin/usuarios/toggle-status}" method="post" class="d-inline">
+                                                    <input type="hidden" name="userId" th:value="${usuario.id}">
+                                                    <button type="submit" 
+                                                            th:class="${usuario.enabled} ? 'btn btn-outline-warning' : 'btn btn-outline-success'"
+                                                            th:disabled="${usuario.username == #authentication.name}"
+                                                            th:title="${usuario.enabled} ? 'Deshabilitar' : 'Habilitar'">
+                                                        <i th:class="${usuario.enabled} ? 'bi bi-pause' : 'bi bi-play'"></i>
+                                                    </button>
+                                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                                                </form>
+                                                
+                                                <!-- Delete -->
+                                                <form th:action="@{/admin/usuarios/eliminar}" method="post" class="d-inline"
+                                                      onsubmit="return confirm('¿Está seguro de eliminar este usuario?')">
+                                                    <input type="hidden" name="userId" th:value="${usuario.id}">
+                                                    <button type="submit" 
+                                                            class="btn btn-outline-danger"
+                                                            th:disabled="${usuario.username == #authentication.name}"
+                                                            title="Eliminar">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modales para cambiar contraseña -->
+    <div th:each="usuario : ${usuarios}" 
+         th:id="'changePasswordModal' + ${usuario.id}" 
+         class="modal fade" 
+         tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-key me-2"></i>
+                        Cambiar Contraseña - <span th:text="${usuario.username}"></span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form th:action="@{/admin/usuarios/cambiar-password}" method="post">
+                    <div class="modal-body">
+                        <input type="hidden" name="userId" th:value="${usuario.id}">
+                        
+                        <div class="mb-3">
+                            <label for="newPassword" class="form-label">
+                                <i class="bi bi-lock me-1"></i>Nueva Contraseña
+                            </label>
+                            <div class="input-group">
+                                <input type="password" 
+                                       class="form-control" 
+                                       th:id="'newPassword' + ${usuario.id}"
+                                       name="newPassword"
+                                       placeholder="Mínimo 6 caracteres"
+                                       required
+                                       minlength="6">
+                                <button class="btn btn-outline-secondary" 
+                                        type="button" 
+                                        th:onclick="'togglePasswordVisibility(' + ${usuario.id} + ')'">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="confirmNewPassword" class="form-label">
+                                <i class="bi bi-lock-fill me-1"></i>Confirmar Nueva Contraseña
+                            </label>
+                            <input type="password" 
+                                   class="form-control" 
+                                   th:id="'confirmNewPassword' + ${usuario.id}"
+                                   name="confirmNewPassword"
+                                   placeholder="Repita la nueva contraseña"
+                                   required>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <strong>Nota:</strong> El usuario deberá usar la nueva contraseña en su próximo inicio de sesión.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="bi bi-x-circle me-2"></i>Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle me-2"></i>Cambiar Contraseña
+                        </button>
+                    </div>
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Auto-dismiss alerts after 5 seconds
+        setTimeout(function() {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                const bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            });
+        }, 5000);
+        
+        // Toggle password visibility
+        function togglePasswordVisibility(userId) {
+            const passwordField = document.getElementById('newPassword' + userId);
+            const toggleButton = event.target.closest('button');
+            const toggleIcon = toggleButton.querySelector('i');
+            
+            if (passwordField.type === 'password') {
+                passwordField.type = 'text';
+                toggleIcon.className = 'bi bi-eye-slash';
+            } else {
+                passwordField.type = 'password';
+                toggleIcon.className = 'bi bi-eye';
+            }
+        }
+        
+        // Password confirmation validation
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add validation to all password confirmation fields
+            document.querySelectorAll('[name="confirmNewPassword"]').forEach(function(confirmField) {
+                confirmField.addEventListener('input', function() {
+                    const userId = this.id.replace('confirmNewPassword', '');
+                    const passwordField = document.getElementById('newPassword' + userId);
+                    
+                    if (this.value && passwordField.value !== this.value) {
+                        this.setCustomValidity('Las contraseñas no coinciden');
+                        this.classList.add('is-invalid');
+                    } else {
+                        this.setCustomValidity('');
+                        this.classList.remove('is-invalid');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

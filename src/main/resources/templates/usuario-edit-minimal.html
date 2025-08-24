@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Editar Usuario</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+  <div class="container py-4">
+    <h1 class="text-center mb-4">Editar Usuario</h1>
+    
+    <div th:if="${mensaje}" class="alert alert-success">
+      <span th:text="${mensaje}"></span>
+    </div>
+    <div th:if="${error}" class="alert alert-danger">
+      <span th:text="${error}"></span>
+    </div>
+
+    <!-- Archivos existentes -->
+    <div class="card mb-4" th:if="${archivos != null and !archivos.empty}">
+      <div class="card-header bg-info text-white">
+        <h5 class="mb-0">Archivos Existentes</h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div th:each="archivo : ${archivos}" class="col-md-6 mb-3">
+            <div class="card">
+              <div class="card-body">
+                <strong th:text="${archivo.nombreOriginal}">archivo.pdf</strong><br>
+                <small th:text="${archivo.tipoContenido}">application/pdf</small><br>
+                <a th:href="@{'/archivos/descargar/' + ${archivo.id}}" class="btn btn-sm btn-primary me-2">
+                  Descargar
+                </a>
+                <a th:href="@{'/archivos/eliminar/' + ${archivo.id} + '?usuarioId=' + ${usuario.id}}" 
+                   class="btn btn-sm btn-danger">
+                  Eliminar
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Formulario de edición -->
+    <div class="card">
+      <div class="card-header bg-warning">
+        <h5 class="mb-0">Editar Información del Usuario</h5>
+      </div>
+      <div class="card-body">
+        <form th:action="@{'/usuarios/' + ${usuario.id}}" method="post" enctype="multipart/form-data">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="legajo" class="form-label">Legajo</label>
+              <input type="text" id="legajo" name="legajo" class="form-control" 
+                     th:value="${usuario.legajo}" required />
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="nombre" class="form-label">Nombre</label>
+              <input type="text" id="nombre" name="nombre" class="form-control" 
+                     th:value="${usuario.nombre}" required />
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="apellido" class="form-label">Apellido</label>
+              <input type="text" id="apellido" name="apellido" class="form-control" 
+                     th:value="${usuario.apellido}" required />
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="telefono" class="form-label">Teléfono</label>
+              <input type="text" id="telefono" name="telefono" class="form-control" 
+                     th:value="${usuario.telefono}" />
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="correoElectronico" class="form-label">Correo Electrónico</label>
+              <input type="email" id="correoElectronico" name="correoElectronico" class="form-control" 
+                     th:value="${usuario.correoElectronico}" required />
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="direccion" class="form-label">Dirección</label>
+              <input type="text" id="direccion" name="direccion" class="form-control" 
+                     th:value="${usuario.direccion}" />
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="site" class="form-label">Site</label>
+            <select id="site" name="site" class="form-select" required>
+              <option th:each="s : ${T(com.registro.model.Site).values()}"
+                      th:value="${s}" th:text="${s.label}"
+                      th:selected="${s} == ${usuario.site}">
+              </option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Agregar Nuevos Archivos</label>
+            <input type="file" name="archivos" class="form-control" multiple />
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Equipos Informáticos (JSON)</label>
+            <textarea name="equiposJson" class="form-control" rows="3" placeholder="[]"></textarea>
+            <small class="text-muted">Formato JSON para equipos</small>
+          </div>
+
+          <div class="text-center">
+            <button type="submit" class="btn btn-warning btn-lg">
+              Actualizar Usuario
+            </button>
+            <a th:href="@{/usuarios/nuevo}" class="btn btn-secondary btn-lg ms-2">
+              Volver
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

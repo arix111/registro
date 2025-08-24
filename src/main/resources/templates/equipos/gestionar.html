@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionar Equipos - Sistema de Registro</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .navbar {
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+        }
+        .page-header {
+            background: linear-gradient(135deg, #0d6efd 0%, #0d6efd 100%);
+            color: white;
+            border-radius: 0.5rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        .section-title {
+            color: #343a40;
+            border-bottom: 2px solid #0d6efd;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+        }
+        .content-container {
+            background-color: #fff;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,.1);
+        }
+        .stat-card {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            text-align: center;
+        }
+        .stat-card .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #0d6efd;
+        }
+        .stat-card .stat-label {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        .toast-success-large {
+            min-width: 350px; /* Ancho mínimo */
+            font-size: 1.1rem; /* Fuente más grande */
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white sticky-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold" th:href="@{/dashboard}">
+                <i class="bi bi-grid-1x2-fill me-2"></i>
+                Sistema de Registro
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" th:href="@{/dashboard}">Dashboard</a>
+                <span class="navbar-text me-3">
+                    <i class="bi bi-person-circle me-1"></i>
+                    <span sec:authentication="name"></span>
+                </span>
+                <form th:action="@{/logout}" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-box-arrow-right me-1"></i> Salir
+                    </button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- Header -->
+        <div class="page-header">
+            <h1 class="display-5 fw-bold">Gestión de Equipos</h1>
+            <p class="lead mb-0">Ecosistema para el registro, seguimiento y administración de equipos informáticos.</p>
+        </div>
+
+        <!-- Estadísticas -->
+        <div class="row mb-4 g-3">
+            <div class="col">
+                <div class="stat-card">
+                    <div class="stat-number" th:text="${totalEquipos}">0</div>
+                    <div class="stat-label">Total</div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="stat-card">
+                    <div class="stat-number text-success" th:text="${equiposActivos}">0</div>
+                    <div class="stat-label">Activos</div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="stat-card">
+                    <div class="stat-number text-info" th:text="${equiposAsignados}">0</div>
+                    <div class="stat-label">Asignados</div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="stat-card">
+                    <div class="stat-number text-primary" th:text="${equiposDisponibles}">0</div>
+                    <div class="stat-label">Disponibles</div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="stat-card">
+                    <div class="stat-number text-danger" th:text="${equiposDadosDeBaja}">0</div>
+                    <div class="stat-label">Dados de Baja</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Formulario de registro -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-laptop me-2"></i>Registrar Nuevo Equipo</h5>
+            </div>
+            <div class="card-body p-4">
+                <form th:action="@{/equipos/crear}" method="post">
+                    <fieldset class="mb-4">
+                        <legend class="h6 mb-3 pb-2 border-bottom">Información Principal</legend>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Tipo de Equipo *</label>
+                                <select name="tipo" class="form-select" required>
+                                    <option value="" disabled selected>Seleccione un tipo</option>
+                                    <option th:each="tipo : ${tiposEquipo}" th:value="${tipo}" th:text="${tipo.label}"></option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Site *</label>
+                                <select name="site" class="form-select" required>
+                                    <option value="" disabled selected>Seleccione un site</option>
+                                    <option th:each="site : ${sites}" th:value="${site}" th:text="${site.label}"></option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Marca *</label>
+                                <input type="text" name="marca" class="form-control" placeholder="Ej: DELL, HP, LENOVO" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Modelo *</label>
+                                <input type="text" name="modelo" class="form-control" placeholder="Ej: OPTIPLEX 7090" required>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="mb-4">
+                        <legend class="h6 mb-3 pb-2 border-bottom">Identificadores Únicos</legend>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Número de Serie *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-qr-code"></i></span>
+                                    <input type="text" name="numeroSerie" class="form-control" placeholder="Ej: GHF12345" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Número de Inventario *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-hash"></i></span>
+                                    <input type="text" name="numeroInventario" class="form-control" placeholder="Ej: 100012345" required>
+                                </div>
+                            </div>
+                        </div>
+                    </fieldset>
+                    
+                    <fieldset>
+                        <legend class="h6 mb-3 pb-2 border-bottom">Estado y Detalles</legend>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Estado *</label>
+                                <select name="estado" class="form-select" required>
+                                    <option value="ACTIVO" selected>Activo</option>
+                                    <option value="INACTIVO">Inactivo</option>
+                                    <option value="EN_REPARACION">En Reparación</option>
+                                    <option value="EN_MANTENIMIENTO">En Mantenimiento</option>
+                                    <option value="DADO_DE_BAJA">Dado de Baja</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Observaciones</label>
+                                <textarea name="observaciones" class="form-control" rows="1" placeholder="Detalles adicionales del equipo"></textarea>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <div class="text-end mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-plus-circle me-2"></i>Registrar Equipo
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Contenido Principal -->
+        <div class="content-container">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3 class="section-title mb-0">Equipos Registrados</h3>
+            </div>
+
+            <!-- Búsqueda y Filtros -->
+            <div class="row mb-3 g-2">
+                <div class="col-md-5">
+                    <input type="text" id="searchInput" class="form-control" placeholder="Buscar por marca, modelo, serie, etc...">
+                </div>
+                <div class="col-md-2">
+                    <select id="filterSite" class="form-select">
+                        <option value="">Todos los Sites</option>
+                        <option th:each="site : ${sites}" th:value="${site.name()}" th:text="${site.label}"></option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select id="filterEstado" class="form-select">
+                        <option value="">Todos los Estados</option>
+                        <option th:each="estado : ${estados}" th:value="${estado.name()}" th:text="${estado.label}"></option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                     <select id="filterActivo" class="form-select">
+                        <option value="">Activo/Inactivo</option>
+                        <option value="true">Activo</option>
+                        <option value="false">Inactivo</option>
+                    </select>
+                </div>
+                <div class="col-md-1">
+                    <button class="btn btn-secondary w-100" onclick="limpiarFiltros()">Limpiar</button>
+                </div>
+            </div>
+
+            <!-- Tabla de Equipos -->
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Marca/Modelo</th>
+                            <th>N° Serie / Inventario</th>
+                            <th>Site</th>
+                            <th>Estado</th>
+                            <th class="text-center">Asignado a</th>
+                            <th>Fecha Registro</th>
+                            <th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaEquiposBody">
+                         <tr th:each="equipo : ${equipos.content}"
+                             th:attr="data-id=${equipo.id},
+                                      data-tipo=${equipo.tipo.name()},
+                                      data-marca=${equipo.marca},
+                                      data-modelo=${equipo.modelo},
+                                      data-numero-serie=${equipo.numeroSerie},
+                                      data-numero-inventario=${equipo.numeroInventario},
+                                      data-site=${equipo.site.name()},
+                                      data-estado=${equipo.estado.name()},
+                                      data-activo=${equipo.activo},
+                                      data-observaciones=${equipo.observaciones}">
+                                    <td>
+                                        <span class="badge bg-info" th:text="${equipo.tipo.label}"></span>
+                                    </td>
+                                    <td>
+                                        <strong th:text="${equipo.marca}"></strong><br>
+                                        <small class="text-muted" th:text="${equipo.modelo}"></small>
+                                    </td>
+                                    <td>
+                                        <div th:if="${equipo.numeroSerie}" th:text="${'S: ' + equipo.numeroSerie}"></div>
+                                        <div th:if="${equipo.numeroInventario}" th:text="${'I: ' + equipo.numeroInventario}"></div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary" th:text="${equipo.site.label}"></span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-success" th:text="${equipo.estado.label}"></span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span th:if="${equipo.usuario != null}" 
+                                              class="badge bg-primary" 
+                                              th:text="${equipo.usuario.nombre + ' ' + equipo.usuario.apellido}"></span>
+                                        <span th:if="${equipo.usuario == null}" 
+                                              class="badge bg-light text-dark">Disponible</span>
+                                    </td>
+                                    <td th:text="${#temporals.format(equipo.fechaRegistro, 'dd/MM/yyyy')}"></td>
+                                    <td class="text-center">
+                                        <a th:href="@{/equipos/{id}/historial(id=${equipo.id})}" class="btn btn-sm btn-info me-1" title="Historial">
+                                            <i class="bi bi-clock-history"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-primary me-1" 
+                                                th:onclick="'editarEquipo(' + ${equipo.id} + ')'" title="Editar">📝</button>
+                                        <form th:action="@{/equipos/eliminar/{id}(id=${equipo.id})}" method="post" style="display: inline;">
+                                            <button type="submit" class="btn btn-sm btn-danger" 
+                                                    onclick="return confirm('¿Eliminar este equipo?')" title="Eliminar">🗑️</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                <tr th:if="${equipos.content.empty}">
+                                    <td colspan="8" class="text-center py-4">
+                                        <i class="bi bi-inbox display-1 text-muted"></i>
+                                        <p class="text-muted mt-2">No hay equipos registrados</p>
+                                    </td>
+                                </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="noResults" class="text-center py-5" style="display: none;">
+                 <i class="bi bi-search display-4 text-muted"></i>
+                 <h5 class="mt-3">No se encontraron equipos</h5>
+                 <p class="text-muted">Intenta con otros filtros o términos de búsqueda.</p>
+            </div>
+
+            <!-- Paginación -->
+            <nav class="d-flex justify-content-between align-items-center mt-3">
+                 <small class="text-muted">
+                                Mostrando 
+                                <span th:text="${equipos.numberOfElements > 0 ? (equipos.number * equipos.size + 1) : 0}">1</span>-<span th:text="${equipos.number * equipos.size + equipos.numberOfElements}">10</span> 
+                                de <span th:text="${equipos.totalElements}">0</span> equipos
+                            </small>
+                <ul class="pagination" id="paginationControls" th:if="${equipos.totalPages > 1}">
+                     <li class="page-item" th:classappend="${equipos.first} ? 'disabled' : ''">
+                                        <a class="page-link" 
+                                           th:href="@{/equipos/gestionar(page=${equipos.number - 1}, size=${equipos.size}, sortBy=${sortBy}, sortDir=${sortDir}, buscar=${buscar})}"
+                                           th:if="${!equipos.first}">
+                                            <i class="bi bi-chevron-left"></i>
+                                        </a>
+                                        <span class="page-link" th:if="${equipos.first}">
+                                            <i class="bi bi-chevron-left"></i>
+                                        </span>
+                                    </li>
+                                    
+                                    <!-- Números de página -->
+                                    <li class="page-item" 
+                                        th:each="pageNum : ${#numbers.sequence(0, equipos.totalPages - 1)}"
+                                        th:classappend="${pageNum == equipos.number} ? 'active' : ''"
+                                        th:if="${pageNum >= equipos.number - 2 and pageNum <= equipos.number + 2}">
+                                        <a class="page-link" 
+                                           th:href="@{/equipos/gestionar(page=${pageNum}, size=${equipos.size}, sortBy=${sortBy}, sortDir=${sortDir}, buscar=${buscar})}"
+                                           th:text="${pageNum + 1}"
+                                           th:if="${pageNum != equipos.number}"></a>
+                                        <span class="page-link" 
+                                              th:text="${pageNum + 1}"
+                                              th:if="${pageNum == equipos.number}"></span>
+                                    </li>
+                                    
+                                    <!-- Botón Siguiente -->
+                                    <li class="page-item" th:classappend="${equipos.last} ? 'disabled' : ''">
+                                        <a class="page-link" 
+                                           th:href="@{/equipos/gestionar(page=${equipos.number + 1}, size=${equipos.size}, sortBy=${sortBy}, sortDir=${sortDir}, buscar=${buscar})}"
+                                           th:if="${!equipos.last}">
+                                            <i class="bi bi-chevron-right"></i>
+                                        </a>
+                                        <span class="page-link" th:if="${equipos.last}">
+                                            <i class="bi bi-chevron-right"></i>
+                                        </span>
+                                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Modal de edición -->
+    <div class="modal fade" id="editarModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar Equipo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="editarForm" method="post">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Tipo *</label>
+                                <select id="editTipo" name="tipo" class="form-select" required>
+                                    <option th:each="tipo : ${tiposEquipo}" 
+                                            th:value="${tipo}" 
+                                            th:text="${tipo.label}"></option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Site *</label>
+                                <select id="editSite" name="site" class="form-select" required>
+                                    <option th:each="site : ${sites}" 
+                                            th:value="${site}" 
+                                            th:text="${site.label}"></option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Marca *</label>
+                                <input type="text" id="editMarca" name="marca" class="form-control" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Modelo *</label>
+                                <input type="text" id="editModelo" name="modelo" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Número de Serie</label>
+                                <input type="text" id="editNumeroSerie" name="numeroSerie" class="form-control">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Número de Inventario</label>
+                                <input type="text" id="editNumeroInventario" name="numeroInventario" class="form-control">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Estado *</label>
+                                <select id="editEstado" name="estado" class="form-select" required>
+                                    <option th:each="estado : ${estados}" 
+                                            th:value="${estado}" 
+                                            th:text="${estado.label}"></option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Activo *</label>
+                                <select id="editActivo" name="activo" class="form-select" required>
+                                    <option value="true">Sí</option>
+                                    <option value="false">No</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Observaciones</label>
+                                <textarea id="editObservaciones" name="observaciones" class="form-control" rows="1"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast de notificación -->
+    <div class="toast-container position-fixed top-0 start-50 translate-middle-x p-3" style="z-index: 1100">
+        <div id="successToast" class="toast align-items-center text-white bg-success border-0 toast-success-large" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body">
+                    <!-- El mensaje se insertará aquí desde JS -->
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-white mt-5 py-3 border-top">
+        <div class="container text-center text-muted small">
+            &copy; 2025 Sistema de Registro. Todos los derechos reservados.
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Lógica para mostrar el toast de éxito
+            const successMessage = /*[[${success}]]*/ null;
+            if (successMessage) {
+                const toastEl = document.getElementById('successToast');
+                const toastBody = toastEl.querySelector('.toast-body');
+                toastBody.textContent = successMessage; // Asignar el mensaje dinámicamente
+                const toast = new bootstrap.Toast(toastEl);
+                toast.show();
+            }
+
+            // Añadir listeners a los filtros para que se activen al cambiar
+            document.getElementById('searchInput').addEventListener('keyup', filtrarTabla);
+            document.getElementById('filterSite').addEventListener('change', filtrarTabla);
+            document.getElementById('filterEstado').addEventListener('change', filtrarTabla);
+            document.getElementById('filterActivo').addEventListener('change', filtrarTabla);
+        });
+
+        function editarEquipo(id) {
+            const fila = document.querySelector('tr[data-id="' + id + '"]');
+            
+            if (fila) {
+                // Llenar los campos del modal con los data attributes de la fila
+                document.getElementById('editTipo').value = fila.dataset.tipo;
+                document.getElementById('editMarca').value = fila.dataset.marca;
+                document.getElementById('editModelo').value = fila.dataset.modelo;
+                document.getElementById('editNumeroSerie').value = fila.dataset.numeroSerie;
+                document.getElementById('editNumeroInventario').value = fila.dataset.numeroInventario;
+                document.getElementById('editSite').value = fila.dataset.site;
+                document.getElementById('editEstado').value = fila.dataset.estado;
+                document.getElementById('editActivo').value = fila.dataset.activo;
+                document.getElementById('editObservaciones').value = fila.dataset.observaciones;
+                
+                // Configurar la acción del formulario del modal
+                document.getElementById('editarForm').action = '/equipos/editar/' + id;
+                
+                // Mostrar el modal
+                const modal = new bootstrap.Modal(document.getElementById('editarModal'));
+                modal.show();
+            } else {
+                console.error('No se encontró la fila para el equipo con id: ' + id);
+                alert('Error: No se pudieron cargar los datos del equipo.');
+            }
+        }
+
+        // Función de búsqueda y filtro combinada
+        function filtrarTabla() {
+            const searchFilter = document.getElementById('searchInput').value.toLowerCase();
+            const siteFilter = document.getElementById('filterSite').value;
+            const estadoFilter = document.getElementById('filterEstado').value;
+            const activoFilter = document.getElementById('filterActivo').value;
+
+            const tableBody = document.getElementById('tablaEquiposBody');
+            const rows = tableBody.getElementsByTagName('tr');
+            let resultsFound = false;
+
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                // Omitir filas que no son de datos, como la de "no hay equipos"
+                if (!row.hasAttribute('data-id')) continue;
+
+                const rowData = row.dataset;
+                const rowText = row.textContent.toLowerCase();
+
+                // Comprobar si la fila cumple con todos los filtros seleccionados
+                const searchMatch = searchFilter === '' || rowText.includes(searchFilter);
+                const siteMatch = siteFilter === '' || rowData.site === siteFilter;
+                const estadoMatch = estadoFilter === '' || rowData.estado === estadoFilter;
+                const activoMatch = activoFilter === '' || rowData.activo === activoFilter;
+
+                if (searchMatch && siteMatch && estadoMatch && activoMatch) {
+                    row.style.display = ''; // Mostrar fila
+                    resultsFound = true;
+                } else {
+                    row.style.display = 'none'; // Ocultar fila
+                }
+            }
+
+            // Mostrar u ocultar el mensaje de "No se encontraron resultados"
+            document.getElementById('noResults').style.display = resultsFound ? 'none' : '';
+        }
+
+        function limpiarFiltros() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('filterSite').value = '';
+            document.getElementById('filterEstado').value = '';
+            document.getElementById('filterActivo').value = '';
+            filtrarTabla(); // Volver a filtrar para mostrar todos los resultados
+        }
+        /*]]>*/
+    </script>
+</body>
+</html>

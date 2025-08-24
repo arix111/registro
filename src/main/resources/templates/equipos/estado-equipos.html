@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estado de Equipos - Sistema de Registro</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .navbar {
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+        }
+        .page-header {
+            background: linear-gradient(135deg, #0d6efd 0%, #0d6efd 100%);
+            color: white;
+            border-radius: 0.5rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        .content-container {
+            background-color: #fff;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,.1);
+        }
+        .stat-card {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            text-align: center;
+        }
+        .stat-card .stat-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        .stat-card .stat-label {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white sticky-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold" th:href="@{/dashboard}">
+                <i class="bi bi-grid-1x2-fill me-2"></i>
+                Sistema de Registro
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" th:href="@{/dashboard}">Dashboard</a>
+                <span class="navbar-text me-3">
+                    <i class="bi bi-person-circle me-1"></i>
+                    <span sec:authentication="name"></span>
+                </span>
+                <form th:action="@{/logout}" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-box-arrow-right me-1"></i> Salir
+                    </button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- Header -->
+        <div class="page-header">
+            <h1 class="display-5 fw-bold">Estado General de Equipos</h1>
+            <p class="lead mb-0">Visualización y filtrado del inventario completo.</p>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="row mb-4 g-3">
+            <div class="col">
+                <div class="stat-card">
+                    <div class="stat-number text-primary" th:text="${totalEquipos}">0</div>
+                    <div class="stat-label">Total Equipos</div>
+                </div>
+            </div>
+            <div class="col" th:each="status : ${countByStatus}">
+                <div class="stat-card">
+                    <div class="stat-number" th:text="${status.value}">0</div>
+                    <div class="stat-label" th:text="${status.key.label}"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters and Table -->
+        <div class="content-container">
+            <h3 class="mb-4">Filtros del Inventario</h3>
+            <div class="row mb-4 g-2">
+                <div class="col-md-2">
+                    <select id="siteFilter" class="form-select">
+                        <option value="">Todos los Sites</option>
+                        <option th:each="site : ${sites}" th:value="${site.label}" th:text="${site.label}"></option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select id="typeFilter" class="form-select">
+                        <option value="">Todos los Tipos</option>
+                        <option th:each="tipo : ${tiposEquipo}" th:value="${tipo.label}" th:text="${tipo.label}"></option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select id="statusFilter" class="form-select">
+                        <option value="">Todos los Estados</option>
+                        <option th:each="statusEntry : ${countByStatus.keySet()}" th:value="${statusEntry.name()}" th:text="${statusEntry.label}"></option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select id="assignmentFilter" class="form-select">
+                        <option value="">Asignación</option>
+                        <option value="asignado">Asignados</option>
+                        <option value="disponible">Disponibles</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <input type="text" id="searchInput" class="form-control" placeholder="Buscar por marca, modelo, etc...">
+                </div>
+            </div>
+
+            <!-- Equipment Table -->
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Marca / Modelo</th>
+                            <th>N° Serie / N° Inventario</th>
+                            <th>Site</th>
+                            <th>Estado</th>
+                            <th>Asignado a</th>
+                        </tr>
+                    </thead>
+                    <tbody id="equipmentTableBody">
+                        <tr th:each="equipo : ${allEquipos}" 
+                            th:attr="data-site=${equipo.site?.label}, 
+                                     data-type=${equipo.tipo?.label}, 
+                                     data-status=${equipo.estado.name()}, 
+                                     data-assignment=${equipo.usuario != null ? 'asignado' : 'disponible'},
+                                     data-search=${equipo.marca + ' ' + equipo.modelo + ' ' + equipo.numeroSerie + ' ' + equipo.numeroInventario + ' ' + equipo.usuario?.nombre}">
+                            <td><span class="badge bg-info" th:text="${equipo.tipo.label}"></span></td>
+                            <td>
+                                <div class="fw-bold" th:text="${equipo.marca}"></div>
+                                <div class="small text-muted" th:text="${equipo.modelo}"></div>
+                            </td>
+                            <td>
+                                <div class="small">S: <code th:text="${equipo.numeroSerie ?: 'N/A'}"></code></div>
+                                <div class="small">I: <code th:text="${equipo.numeroInventario ?: 'N/A'}"></code></div>
+                            </td>
+                            <td><span class="badge bg-secondary" th:text="${equipo.site?.label}"></span></td>
+                            <td>
+                                <span class="badge" 
+                                      th:classappend="${equipo.estado.name() == 'ACTIVO' ? 'bg-success' : (equipo.estado.name() == 'DADO_DE_BAJA' ? 'bg-danger' : 'bg-warning')}"
+                                      th:text="${equipo.estado.label}"></span>
+                            </td>
+                            <td>
+                                <span th:if="${equipo.usuario != null}" th:text="${equipo.usuario.nombre + ' ' + equipo.usuario.apellido}"></span>
+                                <span th:if="${equipo.usuario == null}" class="text-muted fst-italic">No asignado</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-white mt-5 py-3 border-top">
+        <div class="container text-center text-muted small">
+            &copy; 2025 Sistema de Registro. Todos los derechos reservados.
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const siteFilter = document.getElementById('siteFilter');
+            const typeFilter = document.getElementById('typeFilter');
+            const statusFilter = document.getElementById('statusFilter');
+            const assignmentFilter = document.getElementById('assignmentFilter');
+            const searchInput = document.getElementById('searchInput');
+            const tableBody = document.getElementById('equipmentTableBody');
+            const rows = tableBody.getElementsByTagName('tr');
+
+            function filterTable() {
+                const siteValue = siteFilter.value.toLowerCase();
+                const typeValue = typeFilter.value.toLowerCase();
+                const statusValue = statusFilter.value.toLowerCase();
+                const assignmentValue = assignmentFilter.value.toLowerCase();
+                const searchValue = searchInput.value.toLowerCase();
+
+                for (let i = 0; i < rows.length; i++) {
+                    const row = rows[i];
+                    const site = (row.getAttribute('data-site') || '').toLowerCase();
+                    const type = (row.getAttribute('data-type') || '').toLowerCase();
+                    const status = (row.getAttribute('data-status') || '').toLowerCase();
+                    const assignment = (row.getAttribute('data-assignment') || '').toLowerCase();
+                    const searchData = (row.getAttribute('data-search') || '').toLowerCase();
+
+                    const siteMatch = siteValue === '' || site === siteValue;
+                    const typeMatch = typeValue === '' || type === typeValue;
+                    const statusMatch = statusValue === '' || status.startsWith(statusValue);
+                    const assignmentMatch = assignmentValue === '' || assignment === assignmentValue;
+                    const searchMatch = searchValue === '' || searchData.includes(searchValue);
+
+                    if (siteMatch && typeMatch && statusMatch && assignmentMatch && searchMatch) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                }
+            }
+
+            siteFilter.addEventListener('change', filterTable);
+            typeFilter.addEventListener('change', filterTable);
+            statusFilter.addEventListener('change', filterTable);
+            assignmentFilter.addEventListener('change', filterTable);
+            searchInput.addEventListener('keyup', filterTable);
+        });
+    </script>
+</body>
+</html>

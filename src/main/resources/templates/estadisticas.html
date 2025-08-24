@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estadísticas - Sistema de Registro</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .navbar {
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+        }
+        .page-header {
+            background: linear-gradient(135deg, #0d6efd 0%, #0d6efd 100%);
+            color: white;
+            border-radius: 0.5rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        .section-title {
+            color: #343a40;
+            border-bottom: 2px solid #0d6efd;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+        }
+        .chart-container, .table-container {
+            background-color: #fff;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,.1);
+            margin-bottom: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white sticky-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold" th:href="@{/dashboard}">
+                <i class="bi bi-grid-1x2-fill me-2"></i>
+                Sistema de Registro
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" th:href="@{/dashboard}">Dashboard</a>
+                <span class="navbar-text me-3">
+                    <i class="bi bi-person-circle me-1"></i>
+                    <span sec:authentication="name"></span>
+                </span>
+                <form th:action="@{/logout}" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-box-arrow-right me-1"></i> Salir
+                    </button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- Header -->
+        <div class="page-header">
+            <h1 class="display-5 fw-bold">Dashboard de Estadísticas</h1>
+            <p class="lead mb-0">Análisis y visualización de datos clave del sistema.</p>
+        </div>
+
+        <!-- Nueva Sección "Sorpresa" -->
+        <div class="row mb-4">
+            <div class="col-lg-7">
+                <div class="chart-container h-100">
+                    <h5 class="section-title">Visión General del Inventario</h5>
+                    <div class="row text-center">
+                        <div class="col-6 border-end">
+                            <i class="bi bi-laptop display-4 text-primary"></i>
+                            <h2 class="fw-bold mt-2" th:text="${totalEquipos}">0</h2>
+                            <p class="text-muted mb-0">Equipos Totales</p>
+                        </div>
+                        <div class="col-6">
+                            <i class="bi bi-people-fill display-4 text-primary"></i>
+                            <h2 class="fw-bold mt-2" th:text="${totalUsuarios}">0</h2>
+                            <p class="text-muted mb-0">Usuarios Totales</p>
+                        </div>
+                    </div>
+                    <hr>
+                    <div>
+                        <h6 class="text-center">Salud del Inventario</h6>
+                        <div class="progress" style="height: 25px;" th:with="activos=${equiposPorEstado.getOrDefault('ACTIVO', 0L)}">
+                            <div class="progress-bar bg-success" role="progressbar" th:style="'width:' + ${totalEquipos > 0 ? (activos * 100 / totalEquipos) : 0} + '%;'" th:text="${totalEquipos > 0 ? #numbers.formatDecimal(activos * 100.0 / totalEquipos, 1, 1) + '%' : '0%'}"></div>
+                        </div>
+                        <div class="text-center small mt-1">Porcentaje de equipos en estado "Activo"</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-5">
+                <div class="table-container h-100">
+                    <h5 class="section-title">Top 5 Marcas</h5>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center" th:each="marca : ${topMarcas}">
+                            <span th:text="${marca.key}"></span>
+                            <span class="badge bg-primary rounded-pill" th:text="${marca.value}"></span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráficos de Equipos -->
+        <h3 class="section-title mt-5">Estadísticas de Equipos</h3>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="chart-container">
+                    <h5 class="text-center">Equipos por Tipo</h5>
+                    <canvas id="tipoChart"></canvas>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="chart-container">
+                    <h5 class="text-center">Equipos por Estado</h5>
+                    <canvas id="estadoChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráficos de Usuarios y Sites -->
+        <h3 class="section-title mt-5">Estadísticas de Usuarios y Sites</h3>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="chart-container">
+                    <h5 class="text-center">Equipos por Site</h5>
+                    <canvas id="siteChart"></canvas>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="chart-container">
+                    <h5 class="text-center">Usuarios por Site</h5>
+                    <canvas id="usuariosSiteChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tablas Detalladas -->
+        <h3 class="section-title mt-5">Tablas Detalladas</h3>
+        <div class="row">
+            <div class="col-12">
+                <div class="table-container">
+                    <h5 class="mb-3">Usuarios con Más Equipos</h5>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr><th>Usuario</th><th>Legajo</th><th>Site</th><th>Cantidad de Equipos</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="usuario : ${usuariosConMasEquipos}">
+                                    <td th:text="${usuario.nombre}"></td>
+                                    <td><code th:text="${usuario.legajo}"></code></td>
+                                    <td><span class="badge bg-secondary" th:text="${usuario.site}"></span></td>
+                                    <td class="text-center"><span class="badge bg-primary rounded-pill" th:text="${usuario.cantidadEquipos}"></span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-white mt-5 py-3 border-top">
+        <div class="container text-center text-muted small">
+            &copy; 2025 Sistema de Registro. Todos los derechos reservados.
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script th:inline="javascript">
+        document.addEventListener('DOMContentLoaded', function () {
+            const equiposPorTipo = /*[[${equiposPorTipo}]]*/ {};
+            const equiposPorEstado = /*[[${equiposPorEstado}]]*/ {};
+            const equiposPorSite = /*[[${equiposPorSite}]]*/ {};
+            const usuariosPorSite = /*[[${usuariosPorSite}]]*/ {};
+
+            const chartColors = ['#0d6efd', '#198754', '#ffc107', '#dc3545', '#6c757d', '#0dcaf0'];
+
+            // Gráfico de Equipos por Tipo (Dona)
+            new Chart(document.getElementById('tipoChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(equiposPorTipo),
+                    datasets: [{
+                        data: Object.values(equiposPorTipo),
+                        backgroundColor: chartColors
+                    }]
+                },
+                options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+            });
+
+            // Gráfico de Equipos por Estado (Barras)
+            new Chart(document.getElementById('estadoChart'), {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(equiposPorEstado),
+                    datasets: [{
+                        label: 'Cantidad',
+                        data: Object.values(equiposPorEstado),
+                        backgroundColor: chartColors
+                    }]
+                },
+                options: { responsive: true, plugins: { legend: { display: false } } }
+            });
+
+            // Gráfico de Equipos por Site (Torta)
+            new Chart(document.getElementById('siteChart'), {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(equiposPorSite),
+                    datasets: [{
+                        data: Object.values(equiposPorSite),
+                        backgroundColor: chartColors
+                    }]
+                },
+                options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+            });
+
+            // Gráfico de Usuarios por Site (Barras Horizontales)
+            new Chart(document.getElementById('usuariosSiteChart'), {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(usuariosPorSite),
+                    datasets: [{
+                        label: 'Cantidad de Usuarios',
+                        data: Object.values(usuariosPorSite),
+                        backgroundColor: chartColors[1]
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    plugins: { legend: { display: false } }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

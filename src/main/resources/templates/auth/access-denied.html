@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Acceso Denegado - Sistema de Registro</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .error-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            padding: 3rem;
+            text-align: center;
+            max-width: 500px;
+        }
+        .error-icon {
+            font-size: 4rem;
+            color: #ff6b6b;
+            margin-bottom: 1rem;
+        }
+        .btn-back {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 25px;
+            padding: 12px 30px;
+            color: white;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        .btn-back:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            color: white;
+        }
+    
+    /* Botón flotante para volver al inicio */
+    .home-btn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      border-radius: 50px;
+      padding: 12px 20px;
+      color: white;
+      text-decoration: none;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      transition: all 0.3s ease;
+      font-weight: 600;
+    }
+    
+    .home-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+      color: white;
+      text-decoration: none;
+    }
+    </style>
+</head>
+<body>
+  
+  <!-- Botón flotante para volver al inicio -->
+  <a href="/dashboard" class="home-btn">
+    <i class="bi bi-house-door"></i> Inicio
+  </a>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <div class="error-card">
+                    <i class="bi bi-shield-exclamation error-icon"></i>
+                    <h1 class="display-4 text-danger mb-3">403</h1>
+                    <h3 class="mb-3">Acceso Denegado</h3>
+                    <p class="lead text-muted mb-4">
+                        Lo sentimos, no tienes permisos para acceder a esta página.
+                    </p>
+                    
+                    <div th:if="${username}" class="alert alert-info">
+                        <i class="bi bi-person-circle me-2"></i>
+                        Usuario actual: <strong th:text="${username}"></strong>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                        <a th:href="@{/usuarios}" class="btn btn-back me-md-2">
+                            <i class="bi bi-house me-2"></i>
+                            Ir al Inicio
+                        </a>
+                        <a th:href="@{/logout}" class="btn btn-outline-secondary">
+                            <i class="bi bi-box-arrow-right me-2"></i>
+                            Cerrar Sesión
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

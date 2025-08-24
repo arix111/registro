@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auditoría del Sistema - Sistema de Registro</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            margin: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        .activity-item {
+            border-left: 4px solid #007bff;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .activity-item:hover {
+            background-color: #f8f9fa;
+            transform: translateX(5px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        .activity-critical {
+            border-left-color: #dc3545;
+        }
+        .activity-warning {
+            border-left-color: #ffc107;
+        }
+        .activity-success {
+            border-left-color: #28a745;
+        }
+        .floating-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 12px 20px;
+            font-weight: 600;
+            text-decoration: none;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+            transition: all 0.3s ease;
+        }
+        .floating-btn:hover {
+            background: linear-gradient(135deg, #218838, #1ea085);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Botón flotante volver al inicio -->
+    <a class="btn floating-btn" href="/dashboard">
+        <i class="bi bi-house-fill me-2"></i>Volver al inicio
+    </a>
+
+    <div class="container-fluid">
+        <div class="main-container">
+            <!-- Título -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h1 class="display-4 text-center mb-0">
+                        <i class="bi bi-clock-history me-3"></i>Auditoría del Sistema
+                    </h1>
+                    <p class="text-center text-muted mt-2">Registro completo de actividades de usuarios</p>
+                </div>
+            </div>
+
+            <!-- Estadísticas rápidas -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card text-center bg-primary text-white h-100">
+                        <div class="card-body d-flex flex-column justify-content-center">
+                            <h3 th:text="${totalElements}">0</h3>
+                            <p class="mb-0"><i class="bi bi-activity me-2"></i>Total Actividades</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-center bg-warning text-dark h-100">
+                        <div class="card-body d-flex flex-column justify-content-center">
+                            <h3 th:text="${criticalActivitiesCount}">0</h3>
+                            <p class="mb-0"><i class="bi bi-exclamation-triangle-fill me-2"></i>Actividades Críticas</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-center bg-danger text-white h-100">
+                        <div class="card-body d-flex flex-column justify-content-center">
+                            <h3 th:text="${failedLoginsToday}">0</h3>
+                            <p class="mb-0"><i class="bi bi-shield-lock-fill me-2"></i>Logins Fallidos (Hoy)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filtros -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-funnel me-2"></i>Filtros</h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" action="/activity">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <label class="form-label">Buscar Usuario</label>
+                                <input type="text" name="search" class="form-control" 
+                                       th:value="${search}" placeholder="Nombre de usuario...">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Filtro</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="criticalOnly" 
+                                           th:checked="${criticalOnly}" value="true" id="criticalOnly">
+                                    <label class="form-check-label" for="criticalOnly">
+                                        Solo Acciones Críticas
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary me-2">
+                                    <i class="bi bi-search me-1"></i>Filtrar
+                                </button>
+                                <a href="/activity" class="btn btn-outline-secondary">
+                                    <i class="bi bi-arrow-clockwise me-1"></i>Limpiar
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Lista de actividades -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>Registro de Actividades</h5>
+                </div>
+                <div class="card-body">
+                    <div th:if="${activities.empty}" class="text-center py-5">
+                        <i class="bi bi-inbox display-1 text-muted"></i>
+                        <h4 class="text-muted mt-3">No hay actividades registradas</h4>
+                        <p class="text-muted">No se encontraron actividades con los filtros aplicados.</p>
+                    </div>
+
+                    <div th:unless="${activities.empty}">
+                        <div class="row" th:each="activity : ${activities}">
+                            <div class="col-12 mb-3">
+                                <div class="card activity-item" 
+                                     th:classappend="${activity.critical} ? 'activity-critical' : ''"
+                                     onclick="showActivityDetails(this)"
+                                     th:data-id="${activity.id}"
+                                     th:data-username="${activity.username}"
+                                     th:data-action="${activity.action}"
+                                     th:data-entity-type="${activity.entityType}"
+                                     th:data-entity-id="${activity.entityId}"
+                                     th:data-details="${activity.details}"
+                                     th:data-timestamp="${#temporals.format(activity.timestamp, 'dd/MM/yyyy HH:mm:ss')}"
+                                     th:data-critical="${activity.critical}">
+                                    <div class="card-body">
+                                        <div class="row align-items-center">
+                                            <div class="col-md-1 text-center">
+                                                <i th:class="'bi ' + ${activity.actionIcon} + ' fs-3 text-muted'"></i>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <span class="badge" th:classappend="${activity.actionBadgeClass}" 
+                                                      th:text="${activity.action}">ACCIÓN</span>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <strong th:text="${activity.username}">Usuario</strong>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <span class="text-muted" th:text="${activity.entityType}">Entidad</span>
+                                                <small class="d-block" th:if="${activity.entityId}" 
+                                                       th:text="'ID: ' + ${activity.entityId}">ID</small>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <small class="text-muted" th:text="${activity.details}">Detalles</small>
+                                            </div>
+                                            <div class="col-md-2 text-end">
+                                                <small class="text-muted">
+                                                    <i class="bi bi-clock me-1"></i>
+                                                    <span th:text="${#temporals.format(activity.timestamp, 'dd/MM/yyyy HH:mm')}">Fecha</span>
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Paginación -->
+            <div class="card mt-4" th:if="${totalPages > 1}">
+                <div class="card-body">
+                    <nav aria-label="Paginación de actividades">
+                        <ul class="pagination justify-content-center mb-0">
+                            <!-- Botón Anterior -->
+                            <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
+                                <a class="page-link" 
+                                   th:href="@{/activity(page=${currentPage - 1}, search=${search}, criticalOnly=${criticalOnly})}"
+                                   th:if="${currentPage > 0}">
+                                    <i class="bi bi-chevron-left"></i> Anterior
+                                </a>
+                                <span class="page-link" th:unless="${currentPage > 0}">
+                                    <i class="bi bi-chevron-left"></i> Anterior
+                                </span>
+                            </li>
+
+                            <!-- Números de página -->
+                            <li class="page-item" th:each="i : ${#numbers.sequence(0, totalPages - 1)}"
+                                th:if="${i >= currentPage - 2 and i <= currentPage + 2}"
+                                th:classappend="${i == currentPage} ? 'active'">
+                                <a class="page-link" 
+                                   th:href="@{/activity(page=${i}, search=${search}, criticalOnly=${criticalOnly})}"
+                                   th:text="${i + 1}">1</a>
+                            </li>
+
+                            <!-- Botón Siguiente -->
+                            <li class="page-item" th:classappend="${currentPage >= totalPages - 1} ? 'disabled'">
+                                <a class="page-link" 
+                                   th:href="@{/activity(page=${currentPage + 1}, search=${search}, criticalOnly=${criticalOnly})}"
+                                   th:if="${currentPage < totalPages - 1}">
+                                    Siguiente <i class="bi bi-chevron-right"></i>
+                                </a>
+                                <span class="page-link" th:unless="${currentPage < totalPages - 1}">
+                                    Siguiente <i class="bi bi-chevron-right"></i>
+                                </span>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Detalles de Actividad -->
+    <div class="modal fade" id="activityDetailModal" tabindex="-1" aria-labelledby="activityDetailModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="activityDetailModalLabel">
+                        <i class="bi bi-info-circle me-2"></i>Detalles de la Actividad
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0"><i class="bi bi-person me-2"></i>Información del Usuario</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>Usuario:</strong> <span id="detail-username">-</span></p>
+                                    <p><strong>Acción:</strong> <span id="detail-action" class="badge">-</span></p>
+                                    <p><strong>Crítica:</strong> <span id="detail-critical">-</span></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-header bg-info text-white">
+                                    <h6 class="mb-0"><i class="bi bi-box me-2"></i>Información de la Entidad</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>Tipo:</strong> <span id="detail-entity-type">-</span></p>
+                                    <p><strong>ID:</strong> <span id="detail-entity-id">-</span></p>
+                                    <p><strong>Fecha/Hora:</strong> <span id="detail-timestamp">-</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header bg-success text-white">
+                                    <h6 class="mb-0"><i class="bi bi-file-text me-2"></i>Detalles Completos</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="alert alert-light" role="alert">
+                                        <p id="detail-details" class="mb-0">-</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-1"></i>Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        function showActivityDetails(element) {
+            // Extraer datos del elemento clickeado
+            const id = element.getAttribute('data-id');
+            const username = element.getAttribute('data-username');
+            const action = element.getAttribute('data-action');
+            const entityType = element.getAttribute('data-entity-type');
+            const entityId = element.getAttribute('data-entity-id');
+            const details = element.getAttribute('data-details');
+            const timestamp = element.getAttribute('data-timestamp');
+            const critical = element.getAttribute('data-critical');
+            
+            // Llenar el modal con los datos
+            document.getElementById('detail-username').textContent = username || 'N/A';
+            
+            const actionBadge = document.getElementById('detail-action');
+            actionBadge.textContent = action || 'N/A';
+            actionBadge.className = 'badge ' + getActionBadgeClass(action);
+            
+            document.getElementById('detail-entity-type').textContent = entityType || 'N/A';
+            document.getElementById('detail-entity-id').textContent = entityId || 'N/A';
+            document.getElementById('detail-details').textContent = details || 'Sin detalles adicionales';
+            document.getElementById('detail-timestamp').textContent = timestamp || 'N/A';
+            
+            const criticalSpan = document.getElementById('detail-critical');
+            if (critical === 'true') {
+                criticalSpan.innerHTML = '<span class="badge bg-danger"><i class="bi bi-exclamation-triangle me-1"></i>Sí</span>';
+            } else {
+                criticalSpan.innerHTML = '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>No</span>';
+            }
+            
+            // Mostrar el modal
+            const modal = new bootstrap.Modal(document.getElementById('activityDetailModal'));
+            modal.show();
+        }
+        
+        function getActionBadgeClass(action) {
+            switch(action) {
+                case 'CREAR':
+                    return 'bg-success';
+                case 'EDITAR':
+                    return 'bg-warning';
+                case 'ELIMINAR':
+                    return 'bg-danger';
+                case 'VER':
+                    return 'bg-info';
+                case 'LOGIN':
+                    return 'bg-primary';
+                case 'LOGOUT':
+                    return 'bg-secondary';
+                case 'ASIGNAR':
+                    return 'bg-success';
+                case 'DESASIGNAR':
+                    return 'bg-warning';
+                case 'EXPORTAR':
+                    return 'bg-info';
+                default:
+                    return 'bg-secondary';
+            }
+        }
+    </script>
+</body>
+</html>

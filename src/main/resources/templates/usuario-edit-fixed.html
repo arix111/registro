@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Editar Usuario</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+  <script>
+    function abrirSelector() {
+      document.getElementById('archivos').click();
+    }
+    function updateFileList() {
+      const input = document.getElementById('archivos');
+      const list = document.getElementById('file-list');
+      list.innerHTML = '';
+      Array.from(input.files).forEach(file => {
+        const li = document.createElement('li');
+        li.textContent = file.name;
+        list.appendChild(li);
+      });
+    }
+
+    let equipos = [];
+    let equipoEditando = null;
+
+    function inicializarEquipos() {
+      const equiposExistentes = document.querySelectorAll('.equipo-existente');
+      equiposExistentes.forEach(equipoDiv => {
+        const equipo = {
+          id: parseInt(equipoDiv.dataset.id),
+          tipo: equipoDiv.dataset.tipo,
+          marca: equipoDiv.dataset.marca,
+          modelo: equipoDiv.dataset.modelo,
+          numeroSerie: equipoDiv.dataset.numeroSerie,
+          numeroInventario: equipoDiv.dataset.numeroInventario,
+          estado: equipoDiv.dataset.estado,
+          observaciones: equipoDiv.dataset.observaciones
+        };
+        equipos.push(equipo);
+      });
+      actualizarListaEquipos();
+    }
+
+    function abrirModalEquipo() {
+      document.getElementById('equipoModal').style.display = 'block';
+      limpiarFormularioEquipo();
+    }
+
+    function cerrarModalEquipo() {
+      document.getElementById('equipoModal').style.display = 'none';
+      equipoEditando = null;
+    }
+
+    function limpiarFormularioEquipo() {
+      document.getElementById('equipoForm').reset();
+      document.getElementById('modalTitle').textContent = 'Agregar Equipo Informático';
+      document.getElementById('btnGuardarEquipo').textContent = 'Agregar Equipo';
+      // Ocultar campo de especificación al limpiar
+      document.getElementById('especificacionField').style.display = 'none';
+    }
+
+    function toggleEspecificacionField() {
+      console.log('toggleEspecificacionField llamada'); // Debug
+      const tipoSelect = document.getElementById('tipo');
+      const especificacionField = document.getElementById('especificacionField');
+      const especificacionInput = document.getElementById('especificacion');
+      
+      console.log('Valor seleccionado:', tipoSelect.value); // Debug
+      
+      if (tipoSelect.value === 'CABLES' || tipoSelect.value === 'OTROS') {
+        console.log('Mostrando campo de especificación'); // Debug
+        especificacionField.style.display = 'block';
+        especificacionInput.required = true;
+      } else {
+        console.log('Ocultando campo de especificación'); // Debug
+        especificacionField.style.display = 'none';
+        especificacionInput.required = false;
+        especificacionInput.value = '';
+      }
+    }
+
+    function guardarEquipo() {
+      const form = document.getElementById('equipoForm');
+      const formData = new FormData(form);
+      
+      const equipo = {
+        id: equipoEditando ? equipoEditando.id : Date.now(),
+        tipo: formData.get('tipo'),
+        marca: formData.get('marca'),
+        modelo: formData.get('modelo'),
+        numeroSerie: formData.get('numeroSerie'),
+        numeroInventario: formData.get('numeroInventario'),
+        estado: formData.get('estado'),
+        observaciones: formData.get('observaciones')
+      };
+
+      if (!equipo.tipo || !equipo.marca || !equipo.modelo) {
+        alert('Por favor complete todos los campos requeridos');
+        return;
+      }
+
+      if (equipoEditando) {
+        const index = equipos.findIndex(e => e.id === equipoEditando.id);
+        equipos[index] = equipo;
+      } else {
+        equipos.push(equipo);
+      }
+
+      actualizarListaEquipos();
+      cerrarModalEquipo();
+    }
+
+    function editarEquipo(id) {
+      equipoEditando = equipos.find(e => e.id === id);
+      if (equipoEditando) {
+        document.getElementById('tipo').value = equipoEditando.tipo;
+        document.getElementById('marca').value = equipoEditando.marca;
+        document.getElementById('modelo').value = equipoEditando.modelo;
+        document.getElementById('numeroSerie').value = equipoEditando.numeroSerie || '';
+        document.getElementById('numeroInventario').value = equipoEditando.numeroInventario || '';
+        document.getElementById('estado').value = equipoEditando.estado;
+        document.getElementById('observaciones').value = equipoEditando.observaciones || '';
+        
+        document.getElementById('modalTitle').textContent = 'Editar Equipo Informático';
+        document.getElementById('btnGuardarEquipo').textContent = 'Actualizar Equipo';
+        document.getElementById('equipoModal').style.display = 'block';
+      }
+    }
+
+    function eliminarEquipo(id) {
+      if (confirm('¿Está seguro de que desea eliminar este equipo?')) {
+        equipos = equipos.filter(e => e.id !== id);
+        actualizarListaEquipos();
+      }
+    }
+
+    function actualizarListaEquipos() {
+      const lista = document.getElementById('equipos-lista');
+      lista.innerHTML = '';
+      
+      if (equipos.length === 0) {
+        lista.innerHTML = '<div class="alert alert-info"><i class="bi bi-info-circle"></i> No hay equipos asignados</div>';
+      } else {
+        equipos.forEach(equipo => {
+          const div = document.createElement('div');
+          div.className = 'alert alert-info d-flex justify-content-between align-items-center';
+          div.innerHTML = `
+            <div>
+              <strong>${equipo.tipo}</strong> - ${equipo.marca} ${equipo.modelo}<br>
+              <small>Serie: ${equipo.numeroSerie || 'N/A'} | Estado: ${equipo.estado}</small>
+            </div>
+            <div>
+              <button type="button" class="btn btn-sm btn-warning me-2" onclick="editarEquipo(${equipo.id})">
+                <i class="bi bi-pencil"></i> Editar
+              </button>
+              <button type="button" class="btn btn-sm btn-danger" onclick="eliminarEquipo(${equipo.id})">
+                <i class="bi bi-trash"></i> Eliminar
+              </button>
+            </div>
+          `;
+          lista.appendChild(div);
+        });
+      }
+      
+      document.getElementById('equiposJson').value = JSON.stringify(equipos);
+    }
+
+    window.onclick = function(event) {
+      const modal = document.getElementById('equipoModal');
+      if (event.target === modal) {
+        cerrarModalEquipo();
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      inicializarEquipos();
+    });
+  </script>
+</head>
+<body>
+  <div class="container-fluid py-4">
+    <div class="row justify-content-center">
+      <div class="col-lg-10">
+        <h1 class="text-center mb-4"><i class="bi bi-person-gear"></i> Editar Usuario</h1>
+        
+        <div th:if="${mensaje}" class="alert alert-success">
+          <i class="bi bi-check-circle"></i> <span th:text="${mensaje}"></span>
+        </div>
+        <div th:if="${error}" class="alert alert-danger">
+          <i class="bi bi-exclamation-triangle"></i> <span th:text="${error}"></span>
+        </div>
+
+        <!-- Archivos existentes -->
+        <div class="card mb-4" th:if="${archivos != null and !archivos.empty}">
+          <div class="card-header bg-info text-white">
+            <h5 class="mb-0"><i class="bi bi-files"></i> Archivos Existentes</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div th:each="archivo : ${archivos}" class="col-md-6 mb-3">
+                <div class="card">
+                  <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                      <strong th:text="${archivo.nombreOriginal}">archivo.pdf</strong><br>
+                      <small class="text-muted" th:text="${archivo.tipoContenido}">application/pdf</small>
+                    </div>
+                    <div>
+                      <a th:href="@{'/archivos/descargar/' + ${archivo.id}}" class="btn btn-sm btn-outline-primary me-2">
+                        <i class="bi bi-download"></i> Descargar
+                      </a>
+                      <a th:href="@{'/archivos/eliminar/' + ${archivo.id} + '?usuarioId=' + ${usuario.id}}" 
+                         class="btn btn-sm btn-outline-danger"
+                         onclick="return confirm('¿Está seguro de eliminar este archivo?')">
+                        <i class="bi bi-trash"></i> Eliminar
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Equipos existentes (ocultos, se cargan en JavaScript) -->
+        <div style="display: none;">
+          <div th:each="equipo : ${usuario.equiposInformaticos}" 
+               class="equipo-existente"
+               th:data-id="${equipo.id}"
+               th:data-tipo="${equipo.tipo}"
+               th:data-marca="${equipo.marca}"
+               th:data-modelo="${equipo.modelo}"
+               th:data-numero-serie="${equipo.numeroSerie}"
+               th:data-numero-inventario="${equipo.numeroInventario}"
+               th:data-estado="${equipo.estado}"
+               th:data-observaciones="${equipo.observaciones}">
+          </div>
+        </div>
+
+        <!-- Formulario de edición -->
+        <div class="card">
+          <div class="card-header bg-warning text-dark">
+            <h5 class="mb-0"><i class="bi bi-person-gear"></i> Editar Información del Usuario</h5>
+          </div>
+          <div class="card-body">
+            <form th:action="@{'/usuarios/' + ${usuario.id}}" method="post" enctype="multipart/form-data">
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="legajo" class="form-label">Legajo *</label>
+                  <input type="text" id="legajo" name="legajo" class="form-control" 
+                         th:value="${usuario.legajo}" required />
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label for="nombre" class="form-label">Nombre *</label>
+                  <input type="text" id="nombre" name="nombre" class="form-control" 
+                         th:value="${usuario.nombre}" required />
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="apellido" class="form-label">Apellido *</label>
+                  <input type="text" id="apellido" name="apellido" class="form-control" 
+                         th:value="${usuario.apellido}" required />
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label for="telefono" class="form-label">Teléfono</label>
+                  <input type="text" id="telefono" name="telefono" class="form-control" 
+                         th:value="${usuario.telefono}" />
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="correoElectronico" class="form-label">Correo Electrónico *</label>
+                  <input type="email" id="correoElectronico" name="correoElectronico" class="form-control" 
+                         th:value="${usuario.correoElectronico}" required />
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label for="direccion" class="form-label">Dirección</label>
+                  <input type="text" id="direccion" name="direccion" class="form-control" 
+                         th:value="${usuario.direccion}" />
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label for="site" class="form-label">Site *</label>
+                <select id="site" name="site" class="form-select" required>
+                  <option th:each="s : ${T(com.registro.model.Site).values()}"
+                          th:value="${s}" th:text="${s.label}"
+                          th:selected="${s} == ${usuario.site}">
+                  </option>
+                </select>
+              </div>
+
+              <!-- Nuevos archivos -->
+              <div class="mb-3">
+                <label class="form-label">Agregar Nuevos Archivos</label>
+                <input type="file" id="archivos" name="archivos" multiple style="display:none" 
+                       onchange="updateFileList()" />
+                <button type="button" class="btn btn-outline-secondary" onclick="abrirSelector()">
+                  <i class="bi bi-paperclip"></i> Seleccionar archivos
+                </button>
+                <ul id="file-list" class="list-unstyled mt-2"></ul>
+              </div>
+
+              <!-- Equipos Informáticos -->
+              <div class="mb-3">
+                <label class="form-label">Equipos Informáticos</label>
+                <button type="button" class="btn btn-outline-primary" onclick="abrirModalEquipo()">
+                  <i class="bi bi-laptop"></i> Agregar Equipo
+                </button>
+                <div id="equipos-lista" class="mt-3"></div>
+                <input type="hidden" id="equiposJson" name="equiposJson" value="[]" />
+              </div>
+
+              <div class="text-center">
+                <button type="submit" class="btn btn-warning btn-lg">
+                  <i class="bi bi-check-circle"></i> Actualizar Usuario
+                </button>
+                <a th:href="@{/usuarios}" class="btn btn-secondary btn-lg ms-2">
+                  <i class="bi bi-arrow-left"></i> Volver
+                </a>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para Equipos -->
+  <div id="equipoModal" class="modal" style="display: none;">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 id="modalTitle" class="modal-title">Agregar Equipo Informático</h5>
+          <button type="button" class="btn-close" onclick="cerrarModalEquipo()"></button>
+        </div>
+        <div class="modal-body">
+          <form id="equipoForm">
+            <div class="mb-3">
+              <label for="tipo" class="form-label">Tipo de Equipo *</label>
+              <select id="tipo" name="tipo" class="form-select" required onchange="toggleEspecificacionField()">
+                <option value="">Seleccionar</option>
+                <option value="CPU">CPU</option>
+                <option value="MONITOR">Monitor</option>
+                <option value="NOTEBOOK">Notebook</option>
+                <option value="ONLY_ONE">Only One</option>
+                <option value="MOUSE">Mouse</option>
+                <option value="TECLADO">Teclado</option>
+                <option value="VINCHA">Vincha</option>
+                <option value="CABLES">Cables (especificar)</option>
+                <option value="ROUTER">Router</option>
+                <option value="SWITCH">Switch</option>
+                <option value="SERVIDORES">Servidores</option>
+                <option value="PROYECTORES">Proyectores</option>
+                <option value="OTROS">Otros (especificar)</option>
+              </select>
+            </div>
+            <div id="especificacionField" class="mb-3" style="display: none;">
+              <label for="especificacion" class="form-label">Especificar *</label>
+              <input type="text" id="especificacion" name="especificacion" class="form-control" placeholder="Especifique el tipo de equipo..." />
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="marca" class="form-label">Marca *</label>
+                <input type="text" id="marca" name="marca" class="form-control" required />
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="modelo" class="form-label">Modelo *</label>
+                <input type="text" id="modelo" name="modelo" class="form-control" required />
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="numeroSerie" class="form-label">Número de Serie</label>
+                <input type="text" id="numeroSerie" name="numeroSerie" class="form-control" />
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="numeroInventario" class="form-label">Número de Inventario</label>
+                <input type="text" id="numeroInventario" name="numeroInventario" class="form-control" />
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="estado" class="form-label">Estado</label>
+              <select id="estado" name="estado" class="form-select">
+                <option value="ACTIVO">Activo</option>
+                <option value="EN_REPARACION">En Reparación</option>
+                <option value="DADO_DE_BAJA">Dado de Baja</option>
+                <option value="EN_MANTENIMIENTO">En Mantenimiento</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label for="observaciones" class="form-label">Observaciones</label>
+              <textarea id="observaciones" name="observaciones" class="form-control" rows="3"></textarea>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="btnGuardarEquipo" class="btn btn-primary" onclick="guardarEquipo()">
+            Agregar Equipo
+          </button>
+          <button type="button" class="btn btn-secondary" onclick="cerrarModalEquipo()">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

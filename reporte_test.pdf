@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Iniciar Sesión - Sistema de Registro</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            max-width: 400px;
+            width: 100%;
+        }
+        .login-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+        .login-body {
+            padding: 2rem;
+        }
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        .btn-login {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 25px;
+            padding: 12px 30px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .alert {
+            border-radius: 10px;
+            border: none;
+        }
+        .input-group-text {
+            background: #f8f9fa;
+            border-color: #dee2e6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6 col-lg-4">
+                <div class="login-card">
+                    <!-- Header -->
+                    <div class="login-header">
+                        <i class="bi bi-shield-lock fs-1 mb-3"></i>
+                        <h3 class="mb-0">Sistema de Registro</h3>
+                        <p class="mb-0 opacity-75">Iniciar Sesión</p>
+                    </div>
+
+                    <!-- Body -->
+                    <div class="login-body">
+                        <!-- Mensajes de alerta -->
+                        
+
+                        
+
+                        
+
+                        <!-- Formulario de login -->
+                        <form action="/login" method="post"><input type="hidden" name="_csrf" value="o6cAinK6G2I-lOXGg4vA1OmCvl6LvXxNoz1ru5RhTGTC7P8vwcQ1vxHZLlQT99Dyuqb0543nkz--hB1gkARSi_AELwaniZoa"/>
+                            <div class="mb-3">
+                                <label for="username" class="form-label">
+                                    <i class="bi bi-person me-1"></i>Usuario
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="bi bi-person"></i>
+                                    </span>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="username" 
+                                           name="username" 
+                                           placeholder="Ingrese su usuario"
+                                           required 
+                                           autofocus>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="password" class="form-label">
+                                    <i class="bi bi-lock me-1"></i>Contraseña
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="bi bi-lock"></i>
+                                    </span>
+                                    <input type="password" 
+                                           class="form-control" 
+                                           id="password" 
+                                           name="password" 
+                                           placeholder="Ingrese su contraseña"
+                                           required>
+                                    <button class="btn btn-outline-secondary" 
+                                            type="button" 
+                                            id="togglePassword">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" 
+                                       class="form-check-input" 
+                                       id="remember-me" 
+                                       name="remember-me">
+                                <label class="form-check-label" for="remember-me">
+                                    Recordarme
+                                </label>
+                            </div>
+
+                            <div class="d-grid mb-3">
+                                <button type="submit" class="btn btn-primary btn-login">
+                                    <i class="bi bi-box-arrow-in-right me-2"></i>
+                                    Iniciar Sesión
+                                </button>
+                            </div>
+
+                            <!-- CSRF Token -->
+                            <input type="hidden" name="_csrf" value="o6cAinK6G2I-lOXGg4vA1OmCvl6LvXxNoz1ru5RhTGTC7P8vwcQ1vxHZLlQT99Dyuqb0543nkz--hB1gkARSi_AELwaniZoa"/>
+                        </form>
+
+                        <!-- Información de contacto -->
+                        <div class="text-center">
+                            <small class="text-muted">
+                                ¿Necesitas acceso? Contacta al administrador
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Información del sistema -->
+                <div class="text-center mt-3">
+                    <small class="text-white opacity-75">
+                        <i class="bi bi-shield-check me-1"></i>
+                        Conexión segura con Spring Security
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Toggle password visibility
+        document.getElementById('togglePassword').addEventListener('click', function() {
+            const passwordField = document.getElementById('password');
+            const toggleIcon = this.querySelector('i');
+            
+            if (passwordField.type === 'password') {
+                passwordField.type = 'text';
+                toggleIcon.className = 'bi bi-eye-slash';
+            } else {
+                passwordField.type = 'password';
+                toggleIcon.className = 'bi bi-eye';
+            }
+        });
+
+        // Auto-dismiss alerts after 5 seconds
+        setTimeout(function() {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                const bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            });
+        }, 5000);
+    </script>
+</body>
+</html>

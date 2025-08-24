@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Ejecutivo - Sistema de Registro</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            margin: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        .stats-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .stats-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+        .stats-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        .floating-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 12px 20px;
+            font-weight: 600;
+            text-decoration: none;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+            transition: all 0.3s ease;
+        }
+        .floating-btn:hover {
+            background: linear-gradient(135deg, #218838, #1ea085);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Botón flotante volver al inicio -->
+    <a class="btn floating-btn" href="/dashboard">
+        <i class="bi bi-house-fill me-2"></i>Volver al inicio
+    </a>
+
+    <div class="container-fluid">
+        <div class="main-container">
+            <!-- Título -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h1 class="display-4 text-center mb-0">
+                        <i class="bi bi-graph-up me-3"></i>Dashboard Ejecutivo
+                    </h1>
+                    <p class="text-center text-muted mt-2">Análisis completo de equipos por ubicación</p>
+                </div>
+            </div>
+
+            <!-- Estadísticas Generales -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="stats-card text-center">
+                        <div class="stats-number" th:text="${totalEquipos}">0</div>
+                        <div class="stats-label">Total Equipos</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card text-center">
+                        <div class="stats-number" th:text="${equiposActivos}">0</div>
+                        <div class="stats-label">Equipos Activos</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card text-center">
+                        <div class="stats-number" th:text="${equiposAsignados}">0</div>
+                        <div class="stats-label">Equipos Asignados</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card text-center">
+                        <div class="stats-number" th:text="${equiposDisponibles}">0</div>
+                        <div class="stats-label">Equipos Disponibles</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Ejecutivo por Site -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="bi bi-bar-chart-line me-2"></i>Dashboard Ejecutivo por Site</h5>
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-success btn-sm" onclick="exportarExcel()">
+                                    <i class="bi bi-file-earmark-excel me-1"></i>Excel
+                                </button>
+                                <button type="button" class="btn btn-danger btn-sm" onclick="exportarPDF()">
+                                    <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+                                </button>
+                                <a href="/equipos/exportar/reporte" target="_blank" class="btn btn-info btn-sm">
+                                    <i class="bi bi-graph-up me-1"></i>Reporte
+                                </a>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <!-- Spinner de carga -->
+                            <div id="dashboard-loading" class="text-center py-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Cargando dashboard...</span>
+                                </div>
+                                <p class="mt-2 text-muted">Cargando estadísticas por site...</p>
+                            </div>
+                            
+                            <!-- Contenido del dashboard -->
+                            <div id="dashboard-content" style="display: none;">
+                                <div class="row" id="sites-dashboard">
+                                    <!-- Se llenará dinámicamente con JavaScript -->
+                                </div>
+                                
+                                <!-- Dashboard ejecutivo sin gráficos - Solo información estadística -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botón para volver a gestionar equipos -->
+            <div class="row">
+                <div class="col-12 text-center">
+                    <a href="/equipos/gestionar" class="btn btn-secondary btn-lg">
+                        <i class="bi bi-arrow-left me-2"></i>Volver a Gestionar Equipos
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+        .cursor-pointer {
+            cursor: pointer;
+        }
+        
+        .collapse-icon {
+            transition: transform 0.2s ease-in-out;
+        }
+        
+        .collapse-icon.rotated {
+            transform: rotate(90deg);
+        }
+        
+        .collapsible-header:hover {
+            background-color: #e9ecef !important;
+        }
+        
+        .equipment-type-section {
+            transition: all 0.3s ease;
+        }
+        
+        .equipment-type-section:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+    </style>
+    <script>
+        // Cargar dashboard al cargar la página
+        document.addEventListener('DOMContentLoaded', function() {
+            cargarDashboardEjecutivo();
+            
+            // Configurar event listeners para colapsos después de cargar el dashboard
+            setTimeout(() => {
+                configurarEventListenersColapso();
+            }, 1000);
+        });
+        
+        // ===== CONFIGURAR EVENT LISTENERS PARA COLAPSOS =====
+        function configurarEventListenersColapso() {
+            // Obtener todos los elementos collapse
+            const collapseElements = document.querySelectorAll('[id^="collapse-"]');
+            
+            collapseElements.forEach(collapseElement => {
+                const iconId = 'icon-' + collapseElement.id;
+                const icon = document.getElementById(iconId);
+                
+                if (icon) {
+                    // Event listener para cuando se muestra el colapso
+                    collapseElement.addEventListener('show.bs.collapse', function () {
+                        icon.classList.add('rotated');
+                    });
+                    
+                    // Event listener para cuando se oculta el colapso
+                    collapseElement.addEventListener('hide.bs.collapse', function () {
+                        icon.classList.remove('rotated');
+                    });
+                }
+            });
+        }
+        
+        // ===== DASHBOARD EJECUTIVO POR SITE =====
+        function cargarDashboardEjecutivo() {
+            console.log('Iniciando carga de dashboard ejecutivo...');
+            fetch('/api/equipos/estadisticas')
+                .then(response => {
+                    console.log('Respuesta recibida:', response.status);
+                    if (!response.ok) {
+                        throw new Error('Error al cargar estadísticas: ' + response.status);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Datos recibidos:', data);
+                    // Guardar en cache global para usar en modales
+                    window.estadisticasCache = data.siteData || {};
+                    console.log('Cache de estadísticas guardado:', window.estadisticasCache);
+                    mostrarDashboardEjecutivo(data);
+                    crearGraficos(data);
+                })
+                .catch(error => {
+                    console.error('Error en cargarDashboardEjecutivo:', error);
+                    document.getElementById('dashboard-loading').innerHTML = 
+                        '<div class="alert alert-danger">Error al cargar el dashboard: ' + error.message + '</div>';
+                });
+        }
+        
+        function mostrarDashboardEjecutivo(data) {
+            const sitesContainer = document.getElementById('sites-dashboard');
+            const siteData = data.siteData || {};
+            
+            let html = '';
+            
+            Object.keys(siteData).forEach(siteName => {
+                const site = siteData[siteName];
+                const porcentajeActivos = site.totalEquipos > 0 ? 
+                    Math.round((site.equiposActivos / site.totalEquipos) * 100) : 0;
+                const porcentajeAsignados = site.totalEquipos > 0 ? 
+                    Math.round((site.equiposAsignados / site.totalEquipos) * 100) : 0;
+                
+                // Obtener equipos por tipo
+                const equiposPorTipo = site.equiposPorTipo || {};
+                const tiposEquipos = Object.keys(equiposPorTipo);
+                
+                html += `
+                    <div class="col-md-6 col-lg-6 mb-4">
+                        <div class="card h-100 border-0 shadow-sm">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0"><i class="bi bi-geo-alt-fill me-2"></i>${siteName}</h5>
+                                <small class="text-white-50">${site.totalEquipos} equipos totales</small>
+                            </div>
+                            <div class="card-body">
+                                <!-- Equipos por Tipo -->
+                                ${tiposEquipos.length > 0 ? 
+                                    tiposEquipos.map((tipo, index) => {
+                                        const tipoData = equiposPorTipo[tipo];
+                                        const collapseId = `collapse-${siteName.replace(/\s+/g, '')}-${tipo.replace(/\s+/g, '')}-${index}`;
+                                        return `
+                                            <div class="mb-2 border rounded">
+                                                <!-- Header Collapsible -->
+                                                <div class="d-flex justify-content-between align-items-center p-3 bg-light cursor-pointer" 
+                                                     data-bs-toggle="collapse" 
+                                                     data-bs-target="#${collapseId}" 
+                                                     aria-expanded="false" 
+                                                     aria-controls="${collapseId}">
+                                                    <div class="d-flex align-items-center">
+                                                        <i class="bi bi-chevron-right me-2 collapse-icon" id="icon-${collapseId}"></i>
+                                                        <h6 class="mb-0 text-primary">
+                                                            <i class="bi bi-laptop me-1"></i>${tipo}
+                                                        </h6>
+                                                    </div>
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        <span class="badge bg-primary fs-6" title="Total de equipos">
+                                                            ${tipoData.total} equipos
+                                                        </span>
+                                                        <button class="btn btn-sm btn-outline-primary" 
+                                                                onclick="event.stopPropagation(); mostrarEquiposPorTipo('${siteName}', '${tipo}', '${siteName}', '${tipo}')" 
+                                                                title="Ver lista completa">
+                                                            <i class="bi bi-eye"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- Contenido Collapsible -->
+                                                <div class="collapse" id="${collapseId}">
+                                                    <div class="p-3 bg-white">
+                                                        <div class="row text-center mb-3">
+                                                            <div class="col-2">
+                                                                <div class="text-success fw-bold fs-5">${tipoData.activos || 0}</div>
+                                                                <small class="text-muted">Activos</small>
+                                                            </div>
+                                                            <div class="col-2">
+                                                                <div class="text-secondary fw-bold fs-5">${tipoData.inactivos || 0}</div>
+                                                                <small class="text-muted">Inactivos</small>
+                                                            </div>
+                                                            <div class="col-2">
+                                                                <div class="text-danger fw-bold fs-5">${tipoData.dadosDeBaja || 0}</div>
+                                                                <small class="text-muted">Dados de Baja</small>
+                                                            </div>
+                                                            <div class="col-3">
+                                                                <div class="text-warning fw-bold fs-5">${tipoData.enReparacion || 0}</div>
+                                                                <small class="text-muted">En Reparación</small>
+                                                            </div>
+                                                            <div class="col-3">
+                                                                <div class="text-info fw-bold fs-5">${tipoData.enMantenimiento || 0}</div>
+                                                                <small class="text-muted">Mantenimiento</small>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div class="row text-center">
+                                                            <div class="col-6">
+                                                                <div class="text-primary fw-bold fs-5">${tipoData.asignados || 0}</div>
+                                                                <small class="text-muted">Asignados</small>
+                                                            </div>
+                                                            <div class="col-6">
+                                                                <div class="text-secondary fw-bold fs-5">${tipoData.disponibles || 0}</div>
+                                                                <small class="text-muted">Disponibles</small>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <!-- Acción Rápida -->
+                                                        <div class="mt-3 d-flex justify-content-center">
+                                                            <button class="btn btn-primary" 
+                                                                    onclick="mostrarEquiposPorTipo('${siteName}', '${tipo}', '${siteName}', '${tipo}')">
+                                                                <i class="bi bi-list-ul me-1"></i>Ver Lista Completa
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        `;
+                                    }).join('') : 
+                                    `<div class="text-center text-muted py-4">
+                                        <i class="bi bi-inbox display-6"></i>
+                                        <p class="mt-2">No hay equipos registrados en este site.</p>
+                                    </div>`
+                                }
+                                
+                                <!-- Resumen de Usuarios -->
+                                ${site.usuarios?.size > 0 ? `
+                                    <div class="mt-3 p-2 bg-warning bg-opacity-10 rounded">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <small class="text-muted">
+                                                <i class="bi bi-people-fill me-1"></i>Usuarios con equipos:
+                                            </small>
+                                            <span class="badge bg-warning text-dark cursor-pointer" 
+                                                  onclick="mostrarUsuariosAsignados('${siteName}', ${JSON.stringify(Array.from(site.usuarios || []))})" 
+                                                  title="Clic para ver usuarios">
+                                                ${site.usuarios.size} usuarios
+                                            </span>
+                                        </div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            sitesContainer.innerHTML = html;
+            
+            // Ocultar spinner y mostrar contenido
+            document.getElementById('dashboard-loading').style.display = 'none';
+            document.getElementById('dashboard-content').style.display = 'block';
+        }
+        
+        function crearGraficos(data) {
+            const siteData = data.siteData || {};
+            
+            // Preparar datos para gráficos
+            const siteNames = Object.keys(siteData);
+            const totalEquiposPorSite = siteNames.map(site => siteData[site].totalEquipos);
+            const equiposActivosPorSite = siteNames.map(site => siteData[site].equiposActivos);
+            
+            // Gráfico de equipos por estado
+            const ctxEquipos = document.getElementById('equiposChart').getContext('2d');
+            new Chart(ctxEquipos, {
+                type: 'bar',
+                data: {
+                    labels: siteNames,
+                    datasets: [{
+                        label: 'Total Equipos',
+                        data: totalEquiposPorSite,
+                        backgroundColor: 'rgba(54, 162, 235, 0.8)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }, {
+                        label: 'Equipos Activos',
+                        data: equiposActivosPorSite,
+                        backgroundColor: 'rgba(75, 192, 192, 0.8)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Equipos por Site'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+            
+            // Gráfico circular de distribución
+            const ctxSites = document.getElementById('sitesChart').getContext('2d');
+            new Chart(ctxSites, {
+                type: 'doughnut',
+                data: {
+                    labels: siteNames,
+                    datasets: [{
+                        data: totalEquiposPorSite,
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.8)',
+                            'rgba(54, 162, 235, 0.8)',
+                            'rgba(255, 205, 86, 0.8)',
+                            'rgba(75, 192, 192, 0.8)',
+                            'rgba(153, 102, 255, 0.8)'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Distribución de Equipos'
+                        },
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+        
+        // ===== FUNCIONES DE EXPORTACIÓN =====
+        function exportarExcel() {
+            mostrarNotificacion('Generando archivo Excel...', 'info');
+            window.location.href = '/equipos/exportar/excel';
+        }
+        
+        function exportarPDF() {
+            mostrarNotificacion('Generando archivo PDF...', 'info');
+            window.location.href = '/equipos/exportar/pdf';
+        }
+        
+        function generarReporteInteractivo() {
+            mostrarNotificacion('Generando reporte interactivo...', 'info');
+            
+            // Crear ventana de reporte interactivo
+            const reportWindow = window.open('', '_blank', 'width=1200,height=800,scrollbars=yes');
+            
+            fetch('/api/equipos/estadisticas')
+                .then(response => response.json())
+                .then(data => {
+                    const siteData = data.siteData || {};
+                    
+                    let reportHtml = `
+                        <!DOCTYPE html>
+                        <html lang="es">
+                        <head>
+                            <meta charset="UTF-8">
+                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                            <title>Reporte Ejecutivo de Equipos</title>
+                            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+                            <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+                            <style>
+                                body { font-family: Arial, sans-serif; }
+                                .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; }
+                                .stats-card { border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin: 10px 0; }
+                                @media print { .no-print { display: none; } }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="header text-center">
+                                <h1><i class="bi bi-graph-up me-2"></i>Reporte Ejecutivo de Equipos por Site</h1>
+                                <p>Generado el: ${new Date().toLocaleDateString('es-ES', { 
+                                    year: 'numeric', month: 'long', day: 'numeric', 
+                                    hour: '2-digit', minute: '2-digit' 
+                                })}</p>
+                            </div>
+                            <div class="container mt-4">
+                                <div class="row">
+                    `;
+                    
+                    Object.keys(siteData).forEach(siteName => {
+                        const site = siteData[siteName];
+                        reportHtml += 
+                            '<div class="col-md-3 mb-3">' +
+                                '<div class="border rounded p-3">' +
+                                    '<h4 class="text-primary">' + siteName + '</h4>' +
+                                    '<div class="row">' +
+                                        '<div class="col-6">' +
+                                            '<div class="h5 text-info">' + site.totalEquipos + '</div>' +
+                                            '<small>Total</small>' +
+                                        '</div>' +
+                                        '<div class="col-6">' +
+                                            '<div class="h5 text-success">' + site.equiposActivos + '</div>' +
+                                            '<small>Activos</small>' +
+                                        '</div>' +
+                                    '</div>' +
+                                    '<div class="row mt-2">' +
+                                        '<div class="col-6">' +
+                                            '<div class="h5 text-warning">' + site.equiposAsignados + '</div>' +
+                                            '<small>Asignados</small>' +
+                                        '</div>' +
+                                        '<div class="col-6">' +
+                                            '<div class="h5 text-secondary">' + site.usuarios.size + '</div>' +
+                                            '<small>Usuarios</small>' +
+                                        '</div>' +
+                                    '</div>' +
+                                '</div>' +
+                            '</div>';
+                    });
+                    
+                    reportHtml += 
+                                        '</div>' +
+                                    '</div>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="text-center mt-4 no-print">' +
+                            '<button class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer me-2"></i>Imprimir</button>' +
+                            '<button class="btn btn-secondary ms-2" onclick="window.close()"><i class="bi bi-x-circle me-2"></i>Cerrar</button>' +
+                        '</div>' +
+                    '</div>' +
+                    '</body>' +
+                    '</html>';
+                    
+                    reportWindow.document.write(reportHtml);
+                    reportWindow.document.close();
+                    
+                    mostrarNotificacion('Reporte interactivo generado exitosamente', 'success');
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    mostrarNotificacion('Error al generar el reporte: ' + error.message, 'error');
+                    reportWindow.close();
+                });
+        }
+        
+        // Función auxiliar para mostrar notificaciones
+        function mostrarNotificacion(mensaje, tipo) {
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${tipo === 'error' ? 'danger' : tipo === 'success' ? 'success' : 'info'} alert-dismissible fade show position-fixed`;
+            notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+            notification.innerHTML = `
+                ${mensaje}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 3000);
+        }
+        
+        // ===== FUNCIONES PARA MOSTRAR DETALLES =====
+        function mostrarDetallesSite(siteName, siteNameParam) {
+            console.log('Mostrando detalles para site:', siteName);
+            
+            // Obtener los datos del site desde el cache de estadísticas
+            const siteData = window.estadisticasCache && window.estadisticasCache[siteName];
+            console.log('Datos del site desde cache:', siteData);
+            
+            // Obtener equipos detalle del cache
+            const equipos = siteData && siteData.equiposDetalle ? siteData.equiposDetalle : [];
+            console.log('Equipos procesados:', equipos);
+            
+            const modalHtml = `
+                <div class="modal fade" id="detallesSiteModal" tabindex="-1" aria-labelledby="detallesSiteModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-xl">
+                        <div class="modal-content">
+                            <div class="modal-header bg-primary text-white">
+                                <h5 class="modal-title" id="detallesSiteModalLabel">
+                                    <i class="bi bi-laptop me-2"></i>Detalles de Equipos - ${siteName}
+                                </h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                ${equipos.length > 0 ? 
+                                    `<div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead class="table-dark">
+                                                <tr>
+                                                    <th>Tipo</th>
+                                                    <th>Marca/Modelo</th>
+                                                    <th>N° Serie</th>
+                                                    <th>N° Inventario</th>
+                                                    <th>Estado</th>
+                                                    <th>Activo</th>
+                                                    <th>Usuario Asignado</th>
+                                                    <th>Observaciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                ${equipos.map(equipo => `
+                                                    <tr>
+                                                        <td><span class="badge bg-info">${equipo.tipo}</span></td>
+                                                        <td><strong>${equipo.marca}</strong><br><small class="text-muted">${equipo.modelo}</small></td>
+                                                        <td><code>${equipo.numeroSerie}</code></td>
+                                                        <td><code>${equipo.numeroInventario}</code></td>
+                                                        <td><span class="badge bg-${getEstadoBadgeColor(equipo.estado)}">${equipo.estadoLabel}</span></td>
+                                                        <td><span class="badge bg-${equipo.activo ? 'success' : 'secondary'}">${equipo.activo ? 'Sí' : 'No'}</span></td>
+                                                        <td>${equipo.usuarioAsignado ? `<i class="bi bi-person-fill text-primary me-1"></i>${equipo.usuarioAsignado}` : '<span class="text-muted">Disponible</span>'}</td>
+                                                        <td><small>${equipo.observaciones || 'Sin observaciones'}</small></td>
+                                                    </tr>
+                                                `).join('')}
+                                            </tbody>
+                                        </table>
+                                    </div>` : 
+                                    `<div class="text-center text-muted py-4">
+                                        <i class="bi bi-inbox display-4"></i>
+                                        <p class="mt-2">No hay equipos registrados en este site.</p>
+                                    </div>`
+                                }
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                    <i class="bi bi-x-circle me-1"></i>Cerrar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Remover modal anterior si existe
+            const existingModal = document.getElementById('detallesSiteModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            // Agregar nuevo modal al DOM
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            
+            // Mostrar modal
+            const modal = new bootstrap.Modal(document.getElementById('detallesSiteModal'));
+            modal.show();
+            
+            // Limpiar modal del DOM cuando se cierre
+            document.getElementById('detallesSiteModal').addEventListener('hidden.bs.modal', function () {
+                this.remove();
+            });
+        }
+        
+        function mostrarUsuariosAsignados(siteName, usuarios) {
+            const modalHtml = `
+                <div class="modal fade" id="usuariosAsignadosModal" tabindex="-1" aria-labelledby="usuariosAsignadosModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header bg-warning text-dark">
+                                <h5 class="modal-title" id="usuariosAsignadosModalLabel">
+                                    <i class="bi bi-people-fill me-2"></i>Usuarios con Equipos Asignados - ${siteName}
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                ${usuarios.length > 0 ? 
+                                    `<div class="list-group">
+                                        ${usuarios.map(usuario => `
+                                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <i class="bi bi-person-fill text-primary me-2"></i>
+                                                    <strong>${usuario}</strong>
+                                                </div>
+                                                <span class="badge bg-warning text-dark rounded-pill">Equipos asignados</span>
+                                            </div>
+                                        `).join('')}
+                                    </div>` : 
+                                    `<div class="text-center text-muted py-4">
+                                        <i class="bi bi-inbox display-4"></i>
+                                        <p class="mt-2">No hay usuarios con equipos asignados en este site.</p>
+                                    </div>`
+                                }
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                    <i class="bi bi-x-circle me-1"></i>Cerrar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Remover modal anterior si existe
+            const existingModal = document.getElementById('usuariosAsignadosModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            // Agregar nuevo modal al DOM
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            
+            // Mostrar modal
+            const modal = new bootstrap.Modal(document.getElementById('usuariosAsignadosModal'));
+            modal.show();
+            
+            // Limpiar modal del DOM cuando se cierre
+            document.getElementById('usuariosAsignadosModal').addEventListener('hidden.bs.modal', function () {
+                this.remove();
+            });
+        }
+        
+        function getEstadoBadgeColor(estado) {
+            switch(estado) {
+                case 'ACTIVO': return 'success';
+                case 'EN_REPARACION': return 'warning';
+                case 'EN_MANTENIMIENTO': return 'info';
+                case 'DADO_DE_BAJA': return 'danger';
+                default: return 'secondary';
+            }
+        }
+        
+        // ===== FUNCIÓN PARA MOSTRAR EQUIPOS POR TIPO =====
+        function mostrarEquiposPorTipo(siteName, tipoEquipo, siteNameParam, tipoEquipoParam) {
+            console.log('Mostrando equipos por tipo:', siteName, tipoEquipo);
+            
+            // Obtener los datos del site desde el cache de estadísticas
+            const siteData = window.estadisticasCache && window.estadisticasCache[siteName];
+            console.log('Datos del site desde cache:', siteData);
+            
+            // Obtener equipos por tipo del cache
+            const equiposPorTipo = siteData && siteData.equiposPorTipo ? siteData.equiposPorTipo : {};
+            const tipoData = equiposPorTipo[tipoEquipo] || {};
+            const equipos = tipoData.equipos || [];
+            console.log('Equipos del tipo procesados:', equipos);
+            
+            const modalHtml = `
+                <div class="modal fade" id="equiposPorTipoModal" tabindex="-1" aria-labelledby="equiposPorTipoModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-xl">
+                        <div class="modal-content">
+                            <div class="modal-header bg-primary text-white">
+                                <h5 class="modal-title" id="equiposPorTipoModalLabel">
+                                    <i class="bi bi-laptop me-2"></i>${tipoEquipo} en ${siteName}
+                                </h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                ${equipos.length > 0 ? 
+                                    `<div class="mb-3">
+                                        <div class="alert alert-info">
+                                            <i class="bi bi-info-circle me-2"></i>
+                                            <strong>${equipos.length} ${tipoEquipo}${equipos.length !== 1 ? 's' : ''}</strong> encontrado${equipos.length !== 1 ? 's' : ''} en <strong>${siteName}</strong>
+                                        </div>
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead class="table-dark">
+                                                <tr>
+                                                    <th>Marca/Modelo</th>
+                                                    <th>N° Serie</th>
+                                                    <th>N° Inventario</th>
+                                                    <th>Estado</th>
+                                                    <th>Activo</th>
+                                                    <th>Usuario Asignado</th>
+                                                    <th>Observaciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                ${equipos.map(equipo => `
+                                                    <tr>
+                                                        <td><strong>${equipo.marca}</strong><br><small class="text-muted">${equipo.modelo}</small></td>
+                                                        <td><code>${equipo.numeroSerie}</code></td>
+                                                        <td><code>${equipo.numeroInventario}</code></td>
+                                                        <td><span class="badge bg-${getEstadoBadgeColor(equipo.estado)}">${equipo.estadoLabel}</span></td>
+                                                        <td><span class="badge bg-${equipo.activo ? 'success' : 'secondary'}">${equipo.activo ? 'Sí' : 'No'}</span></td>
+                                                        <td>${equipo.usuarioAsignado ? `<i class="bi bi-person-fill text-primary me-1"></i>${equipo.usuarioAsignado}` : '<span class="text-muted">Disponible</span>'}</td>
+                                                        <td><small>${equipo.observaciones || 'Sin observaciones'}</small></td>
+                                                    </tr>
+                                                `).join('')}
+                                            </tbody>
+                                        </table>
+                                    </div>` : 
+                                    `<div class="text-center text-muted py-4">
+                                        <i class="bi bi-inbox display-4"></i>
+                                        <p class="mt-2">No hay equipos de tipo <strong>${tipoEquipo}</strong> en <strong>${siteName}</strong>.</p>
+                                    </div>`
+                                }
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                    <i class="bi bi-x-circle me-1"></i>Cerrar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Remover modal anterior si existe
+            const existingModal = document.getElementById('equiposPorTipoModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            // Agregar nuevo modal al DOM
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            
+            // Mostrar modal
+            const modal = new bootstrap.Modal(document.getElementById('equiposPorTipoModal'));
+            modal.show();
+            
+            // Limpiar modal del DOM cuando se cierre
+            document.getElementById('equiposPorTipoModal').addEventListener('hidden.bs.modal', function () {
+                this.remove();
+            });
+        }
+
+    </script>
+</body>
+</html>

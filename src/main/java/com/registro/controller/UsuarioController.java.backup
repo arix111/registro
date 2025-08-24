@@ -1,0 +1,176 @@
+// src/main/java/com/registro/controller/UsuarioController.java
+package com.registro.controller;
+
+import com.registro.model.EquipoInformatico;
+import com.registro.model.Site;
+import com.registro.model.Usuario;
+import com.registro.service.ArchivoService;
+import com.registro.service.EquipoInformaticoService;
+import com.registro.service.UsuarioService;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.Arrays;
+import java.util.List;
+
+@Controller
+@RequestMapping("/usuarios")
+public class UsuarioController {
+
+    private final UsuarioService usuarioService;
+    private final ArchivoService archivoService;
+    private final EquipoInformaticoService equipoService;
+    private final ObjectMapper objectMapper;
+
+    public UsuarioController(UsuarioService usuarioService,
+                             ArchivoService archivoService,
+                             EquipoInformaticoService equipoService) {
+        this.usuarioService = usuarioService;
+        this.archivoService = archivoService;
+        this.equipoService = equipoService;
+        this.objectMapper = new ObjectMapper();
+    }
+
+    @GetMapping("/nuevo")
+    public String mostrarFormulario(Model model) {
+        model.addAttribute("usuario", new Usuario());
+        return "usuario-form";
+    }
+
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public String crearYSubir(
+            @RequestParam("legajo") String legajo,
+            @RequestParam("nombre") String nombre,
+            @RequestParam("apellido") String apellido,
+            @RequestParam("telefono") String telefono,
+            @RequestParam("correoElectronico") String correoElectronico,
+            @RequestParam("direccion") String direccion,
+            @RequestParam("site") Site site,
+            @RequestParam(name="archivos", required=false) MultipartFile[] archivos,
+            Model model
+    ) {
+        try {
+            // 1) Crear usuario
+            Usuario creado = usuarioService.crearUsuario(
+                legajo, nombre, apellido, telefono, correoElectronico, direccion, site
+            );
+            // 2) Subir sólo archivos no vacíos
+            if (archivos != null && Arrays.stream(archivos).anyMatch(f -> f != null && !f.isEmpty())) {
+                archivoService.subirArchivos(legajo, archivos);
+            }
+            
+            // 3) Procesar equipos informáticos
+            if (equiposJson != null && !equiposJson.trim().isEmpty() && !"[]".equals(equiposJson.trim())) {
+                try {
+                    TypeReference<List<EquipoRequest>> typeRef = new TypeReference<List<EquipoRequest>>() {};
+                    List<EquipoRequest> equipos = objectMapper.readValue(equiposJson, typeRef);
+                    
+                    for (EquipoRequest equipoReq : equipos) {
+                        equipoService.crearEquipo(
+                            legajo,
+                            equipoReq.getTipo(),
+                            equipoReq.getMarca(),
+                            equipoReq.getModelo(),
+                            equipoReq.getNumeroSerie(),
+                            equipoReq.getNumeroInventario(),
+                            EquipoInformatico.EstadoEquipo.valueOf(equipoReq.getEstado()),
+                            equipoReq.getObservaciones()
+                        );
+                    }
+                } catch (Exception e) {
+                    throw new RuntimeException("Error procesando equipos: " + e.getMessage());
+                }
+            }
+            
+            model.addAttribute("mensaje",
+                "Usuario '" + creado.getLegajo() + "' creado con archivos y equipos OK");
+        } catch (Exception e) {
+            model.addAttribute("error", "Error: " + e.getMessage());
+        }
+        // 3) Limpiar formulario
+        model.addAttribute("usuario", new Usuario());
+        return "usuario-form";
+    }
+
+    @GetMapping("/editar")
+    public String mostrarEdicion(@RequestParam("legajo") String legajo, Model model) {
+        Usuario u = usuarioService.obtenerUsuarioPorLegajo(legajo);
+        model.addAttribute("usuario", u);
+        return "usuario-edit";
+    }
+
+    @PostMapping(value = "/editar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public String procesarEdicion(
+            @RequestParam("legajoOriginal") String legajoOriginal,
+            @RequestParam("nombre") String nombre,
+            @RequestParam("apellido") String apellido,
+            @RequestParam("telefono") String telefono,
+            @RequestParam("correoElectronico") String correoElectronico,
+            @RequestParam("direccion") String direccion,
+            @RequestParam("site") Site site,
+            @RequestParam(name="archivos", required=false) MultipartFile[] archivos,
+            Model model
+    ) {
+        try {
+            // 1) Cargar y actualizar datos
+            Usuario usuario = usuarioService.obtenerUsuarioPorLegajo(legajoOriginal);
+            usuario.setNombre(nombre);
+            usuario.setApellido(apellido);
+            usuario.setTelefono(telefono);
+            usuario.setCorreoElectronico(correoElectronico);
+            usuario.setDireccion(direccion);
+            usuario.setSite(site);
+            usuarioService.actualizarUsuario(usuario);
+
+            // 2) Subir sólo archivos no vacíos
+            if (archivos != null && Arrays.stream(archivos).anyMatch(f -> f != null && !f.isEmpty())) {
+                archivoService.subirArchivos(legajoOriginal, archivos);
+            }
+            
+            // 3) Procesar equipos informáticos (eliminar existentes y crear nuevos)
+            if (equiposJson != null && !equiposJson.trim().isEmpty()) {
+                try {
+                    // Eliminar equipos existentes del usuario
+                    List<EquipoInformatico> equiposExistentes = equipoService.obtenerEquiposPorUsuario(legajoOriginal);
+                    for (EquipoInformatico equipo : equiposExistentes) {
+                        equipoService.eliminarEquipo(equipo.getId());
+                    }
+                    
+                    // Crear nuevos equipos si hay datos
+                    if (!"[]".equals(equiposJson.trim())) {
+                        TypeReference<List<EquipoRequest>> typeRef = new TypeReference<List<EquipoRequest>>() {};
+                        List<EquipoRequest> equipos = objectMapper.readValue(equiposJson, typeRef);
+                        
+                        for (EquipoRequest equipoReq : equipos) {
+                            equipoService.crearEquipo(
+                                legajoOriginal,
+                                equipoReq.getTipo(),
+                                equipoReq.getMarca(),
+                                equipoReq.getModelo(),
+                                equipoReq.getNumeroSerie(),
+                                equipoReq.getNumeroInventario(),
+                                EquipoInformatico.EstadoEquipo.valueOf(equipoReq.getEstado()),
+                                equipoReq.getObservaciones()
+                            );
+                        }
+                    }
+                } catch (Exception e) {
+                    throw new RuntimeException("Error procesando equipos: " + e.getMessage());
+                }
+            }
+
+            model.addAttribute("mensaje", "Usuario actualizado correctamente");
+        } catch (Exception e) {
+            model.addAttribute("error", "Error: " + e.getMessage());
+        }
+        // 3) Recargar usuario actualizado con sus archivos
+        Usuario actualizado = usuarioService.obtenerUsuarioPorLegajo(legajoOriginal);
+        model.addAttribute("usuario", actualizado);
+        return "usuario-edit";
+    }
+}

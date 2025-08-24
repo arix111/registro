@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionar Equipos - Sistema de Registro</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            margin: 20px;
+            padding: 30px;
+        }
+        
+        .stats-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        
+        .stats-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .stats-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .form-control, .form-select {
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            padding: 12px 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        
+        .table {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .table thead th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px;
+            font-weight: 600;
+        }
+        
+        .table tbody td {
+            padding: 15px;
+            vertical-align: middle;
+            border-color: #f8f9fa;
+        }
+        
+        .badge {
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+        
+        .modal-content {
+            border-radius: 20px;
+            border: none;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 20px 20px 0 0;
+            border: none;
+        }
+        
+        .pagination .page-link {
+            border-radius: 10px;
+            margin: 0 2px;
+            border: none;
+            color: #667eea;
+        }
+        
+        .pagination .page-item.active .page-link {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+        }
+        
+        .floating-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1050;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 12px 20px;
+            font-weight: 500;
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .floating-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 30px rgba(102, 126, 234, 0.4);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <!-- Botón flotante Volver al inicio -->
+    <a href="/dashboard/main" class="btn floating-btn">
+        <i class="bi bi-house-fill me-2"></i>Volver al inicio
+    </a>
+
+    <div class="container-fluid">
+        <div class="main-container">
+            <!-- Header -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h1 class="display-4 text-center mb-0" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: bold;">
+                        <i class="bi bi-laptop me-3"></i>Gestionar Equipos Informáticos
+                    </h1>
+                    <p class="text-center text-muted mt-2">Ecosistema completo de registro, edición y seguimiento de equipos</p>
+                </div>
+            </div>
+
+            <!-- Estadísticas -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="stats-card text-center">
+                        <div class="stats-number" th:text="${totalEquipos}">0</div>
+                        <div class="stats-label">Total Equipos</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card text-center">
+                        <div class="stats-number" th:text="${equiposActivos}">0</div>
+                        <div class="stats-label">Equipos Activos</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card text-center">
+                        <div class="stats-number" th:text="${equiposAsignados}">0</div>
+                        <div class="stats-label">Equipos Asignados</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card text-center">
+                        <div class="stats-number" th:text="${equiposDisponibles}">0</div>
+                        <div class="stats-label">Equipos Disponibles</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alertas -->
+            <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                <span th:text="${success}"></span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            
+            <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                <span th:text="${error}"></span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+
+            <!-- Formulario de Nuevo Equipo -->
+            <div class="card mb-4" style="border-radius: 15px; border: none; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+                <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 15px 15px 0 0;">
+                    <h5 class="mb-0"><i class="bi bi-plus-circle me-2"></i>Registrar Nuevo Equipo</h5>
+                </div>
+                <div class="card-body">
+                    <form th:action="@{/equipos/crear}" method="post">
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Tipo de Equipo *</label>
+                                <select name="tipo" class="form-select" required>
+                                    <option value="">Seleccionar</option>
+                                    <option th:each="tipo : ${tiposEquipo}" 
+                                            th:value="${tipo}" 
+                                            th:text="${tipo.label}"></option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Marca *</label>
+                                <input type="text" name="marca" class="form-control" required 
+                                       oninput="this.value = this.value.toUpperCase()" 
+                                       style="text-transform: uppercase;" 
+                                       placeholder="Ej: DELL, HP, LENOVO">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Modelo *</label>
+                                <input type="text" name="modelo" class="form-control" required 
+                                       oninput="this.value = this.value.toUpperCase()" 
+                                       style="text-transform: uppercase;" 
+                                       placeholder="Ej: OPTIPLEX 7090">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Site *</label>
+                                <select name="site" class="form-select" required>
+                                    <option value="">Seleccionar</option>
+                                    <option th:each="site : ${sites}" 
+                                            th:value="${site}" 
+                                            th:text="${site.label}"></option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Número de Serie</label>
+                                <input type="text" name="numeroSerie" class="form-control" 
+                                       oninput="this.value = this.value.toUpperCase()" 
+                                       style="text-transform: uppercase;" 
+                                       placeholder="Opcional">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Número de Inventario</label>
+                                <input type="text" name="numeroInventario" class="form-control" 
+                                       oninput="this.value = this.value.toUpperCase()" 
+                                       style="text-transform: uppercase;" 
+                                       placeholder="Opcional">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Observaciones</label>
+                                <textarea name="observaciones" class="form-control" rows="1" 
+                                          oninput="this.value = this.value.toUpperCase()" 
+                                          style="text-transform: uppercase;" 
+                                          placeholder="Opcional"></textarea>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-plus-circle me-2"></i>Registrar Equipo
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Filtros y Búsqueda -->
+            <div class="card mb-4" style="border-radius: 15px; border: none; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+                <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 15px 15px 0 0;">
+                    <h5 class="mb-0"><i class="bi bi-funnel me-2"></i>Filtros y Búsqueda</h5>
+                </div>
+                <div class="card-body">
+                    <form th:action="@{/equipos/gestionar}" method="get">
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Buscar</label>
+                                <input type="text" name="buscar" class="form-control" 
+                                       th:value="${buscar}" 
+                                       placeholder="Marca, modelo, serie...">
+                            </div>
+                            <div class="col-md-2 mb-3">
+                                <label class="form-label">Site</label>
+                                <select name="filtroSite" class="form-select">
+                                    <option value="">Todos</option>
+                                    <option th:each="site : ${sites}" 
+                                            th:value="${site}" 
+                                            th:text="${site.label}"
+                                            th:selected="${filtroSite == site.toString()}"></option>
+                                </select>
+                            </div>
+                            <div class="col-md-2 mb-3">
+                                <label class="form-label">Estado</label>
+                                <select name="filtroEstado" class="form-select">
+                                    <option value="">Todos</option>
+                                    <option th:each="estado : ${estados}" 
+                                            th:value="${estado}" 
+                                            th:text="${estado.label}"
+                                            th:selected="${filtroEstado == estado.toString()}"></option>
+                                </select>
+                            </div>
+                            <div class="col-md-2 mb-3">
+                                <label class="form-label">Activo</label>
+                                <select name="filtroActivo" class="form-select">
+                                    <option value="">Todos</option>
+                                    <option value="true" th:selected="${filtroActivo == 'true'}">Sí</option>
+                                    <option value="false" th:selected="${filtroActivo == 'false'}">No</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 mb-3 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary me-2">
+                                    <i class="bi bi-search me-1"></i>Filtrar
+                                </button>
+                                <a href="/equipos/gestionar" class="btn btn-outline-secondary">
+                                    <i class="bi bi-arrow-clockwise me-1"></i>Limpiar
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Tabla de Equipos -->
+            <div class="card" style="border-radius: 15px; border: none; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+                <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 15px 15px 0 0;">
+                    <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>Equipos Registrados</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Tipo</th>
+                                    <th>Marca/Modelo</th>
+                                    <th>Serie</th>
+                                    <th>Inventario</th>
+                                    <th>Site</th>
+                                    <th>Estado</th>
+                                    <th>Activo</th>
+                                    <th>Asignado a</th>
+                                    <th>Fecha Registro</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="equipo : ${equipos.content}">
+                                    <td>
+                                        <span class="badge bg-info" th:text="${equipo.tipo.label}"></span>
+                                    </td>
+                                    <td>
+                                        <strong th:text="${equipo.marca}"></strong><br>
+                                        <small class="text-muted" th:text="${equipo.modelo}"></small>
+                                    </td>
+                                    <td th:text="${equipo.numeroSerie ?: 'N/A'}"></td>
+                                    <td th:text="${equipo.numeroInventario ?: 'N/A'}"></td>
+                                    <td>
+                                        <span class="badge bg-secondary" th:text="${equipo.site.label}"></span>
+                                    </td>
+                                    <td>
+                                        <span class="badge" 
+                                              th:classappend="${equipo.estado.toString() == 'ACTIVO'} ? 'bg-success' : 
+                                                             (${equipo.estado.toString() == 'EN_REPARACION'} ? 'bg-warning' : 
+                                                             (${equipo.estado.toString() == 'EN_MANTENIMIENTO'} ? 'bg-info' : 'bg-danger'))"
+                                              th:text="${equipo.estado.label}"></span>
+                                    </td>
+                                    <td>
+                                        <span class="badge" 
+                                              th:classappend="${equipo.activo} ? 'bg-success' : 'bg-danger'"
+                                              th:text="${equipo.activo} ? 'Sí' : 'No'"></span>
+                                    </td>
+                                    <td>
+                                        <span th:if="${equipo.usuario != null}" 
+                                              class="badge bg-primary" 
+                                              th:text="${equipo.usuario.nombre + ' ' + equipo.usuario.apellido}"></span>
+                                        <span th:if="${equipo.usuario == null}" 
+                                              class="badge bg-light text-dark">Disponible</span>
+                                    </td>
+                                    <td th:text="${#temporals.format(equipo.fechaRegistro, 'dd/MM/yyyy')}"></td>
+                                    <td class="text-nowrap">
+                                        <button type="button" class="btn btn-sm btn-outline-primary me-2" 
+                                                th:onclick="'editarEquipo(' + ${equipo.id} + ', \'' + ${equipo.tipo} + '\', \'' + ${equipo.marca} + '\', \'' + ${equipo.modelo} + '\', \'' + ${equipo.numeroSerie} + '\', \'' + ${equipo.numeroInventario} + '\', \'' + ${equipo.site} + '\', \'' + ${equipo.estado} + '\', ' + ${equipo.activo} + ', \'' + ${equipo.observaciones} + '\')'">
+                                            📝 Editar
+                                        </button>
+                                        <a th:href="@{'/equipos/eliminar/' + ${equipo.id}}" class="btn btn-sm btn-outline-danger" 
+                                           onclick="return confirm('¿Eliminar este equipo?')">
+                                            🗑️ Eliminar
+                                        </a>
+                                    </td>
+                                </tr>
+                                <tr th:if="${equipos.content.empty}">
+                                    <td colspan="10" class="text-center py-4">
+                                        <i class="bi bi-inbox display-1 text-muted"></i>
+                                        <p class="text-muted mt-2">No hay equipos registrados</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Paginación -->
+            <div th:if="${equipos.totalPages > 1}" class="d-flex justify-content-center mt-4">
+                <nav>
+                    <ul class="pagination">
+                        <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
+                            <a class="page-link" th:href="@{/equipos/gestionar(page=${currentPage - 1}, buscar=${buscar}, filtroSite=${filtroSite}, filtroEstado=${filtroEstado}, filtroActivo=${filtroActivo})}">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+                        <li th:each="page : ${#numbers.sequence(0, equipos.totalPages - 1)}" 
+                            class="page-item" 
+                            th:classappend="${page == currentPage} ? 'active'">
+                            <a class="page-link" 
+                               th:href="@{/equipos/gestionar(page=${page}, buscar=${buscar}, filtroSite=${filtroSite}, filtroEstado=${filtroEstado}, filtroActivo=${filtroActivo})}"
+                               th:text="${page + 1}"></a>
+                        </li>
+                        <li class="page-item" th:classappend="${currentPage == equipos.totalPages - 1} ? 'disabled'">
+                            <a class="page-link" th:href="@{/equipos/gestionar(page=${currentPage + 1}, buscar=${buscar}, filtroSite=${filtroSite}, filtroEstado=${filtroEstado}, filtroActivo=${filtroActivo})}">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Edición -->
+    <div class="modal fade" id="editarModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-pencil me-2"></i>Editar Equipo</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editarForm" method="post">
+                        <input type="hidden" id="editId" name="id">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Tipo de Equipo *</label>
+                                <select id="editTipo" name="tipo" class="form-select" required>
+                                    <option th:each="tipo : ${tiposEquipo}" 
+                                            th:value="${tipo}" 
+                                            th:text="${tipo.label}"></option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Site *</label>
+                                <select id="editSite" name="site" class="form-select" required>
+                                    <option th:each="site : ${sites}" 
+                                            th:value="${site}" 
+                                            th:text="${site.label}"></option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Marca *</label>
+                                <input type="text" id="editMarca" name="marca" class="form-control" required 
+                                       oninput="this.value = this.value.toUpperCase()" 
+                                       style="text-transform: uppercase;">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Modelo *</label>
+                                <input type="text" id="editModelo" name="modelo" class="form-control" required 
+                                       oninput="this.value = this.value.toUpperCase()" 
+                                       style="text-transform: uppercase;">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Número de Serie</label>
+                                <input type="text" id="editNumeroSerie" name="numeroSerie" class="form-control" 
+                                       oninput="this.value = this.value.toUpperCase()" 
+                                       style="text-transform: uppercase;">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Número de Inventario</label>
+                                <input type="text" id="editNumeroInventario" name="numeroInventario" class="form-control" 
+                                       oninput="this.value = this.value.toUpperCase()" 
+                                       style="text-transform: uppercase;">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Estado *</label>
+                                <select id="editEstado" name="estado" class="form-select" required>
+                                    <option th:each="estado : ${estados}" 
+                                            th:value="${estado}" 
+                                            th:text="${estado.label}"></option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Activo *</label>
+                                <select id="editActivo" name="activo" class="form-select" required>
+                                    <option value="true">Sí</option>
+                                    <option value="false">No</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Observaciones</label>
+                                <textarea id="editObservaciones" name="observaciones" class="form-control" rows="1" 
+                                          oninput="this.value = this.value.toUpperCase()" 
+                                          style="text-transform: uppercase;"></textarea>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="guardarEdicion()">
+                        <i class="bi bi-check-circle me-2"></i>Guardar Cambios
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Función para editar equipo
+        function editarEquipo(id, tipo, marca, modelo, numeroSerie, numeroInventario, site, estado, activo, observaciones) {
+            // Llenar el modal con los datos actuales
+            document.getElementById('editId').value = id;
+            document.getElementById('editarForm').action = `/equipos/editar/${id}`;
+            
+            // Llenar los campos del modal
+            document.getElementById('editTipo').value = tipo;
+            document.getElementById('editMarca').value = marca;
+            document.getElementById('editModelo').value = modelo;
+            document.getElementById('editNumeroSerie').value = numeroSerie;
+            document.getElementById('editNumeroInventario').value = numeroInventario;
+            document.getElementById('editSite').value = site;
+            document.getElementById('editEstado').value = estado;
+            document.getElementById('editActivo').value = activo.toString();
+            document.getElementById('editObservaciones').value = observaciones;
+            
+            // Mostrar el modal
+            new bootstrap.Modal(document.getElementById('editarModal')).show();
+        }
+        
+        // Función para eliminar equipo
+        function eliminarEquipo(id, descripcion) {
+            if (confirm(`¿Está seguro de eliminar el equipo: ${descripcion}?`)) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = `/equipos/eliminar/${id}`;
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+        
+        // Función para guardar edición
+        function guardarEdicion() {
+            document.getElementById('editarForm').submit();
+        }
+
+        // ===== FUNCIONES REDISEÑADAS PARA BOTONES SIMPLES =====
+        
+        // Función simple para editar equipo
+        function editarEquipo(id, tipo, marca, modelo, serie, inventario, site, estado, activo, obs) {
+            // Llenar el modal de edición
+            document.getElementById('editTipo').value = tipo;
+            document.getElementById('editMarca').value = marca || '';
+            document.getElementById('editModelo').value = modelo || '';
+            document.getElementById('editNumeroSerie').value = serie || '';
+            document.getElementById('editNumeroInventario').value = inventario || '';
+            document.getElementById('editSite').value = site;
+            document.getElementById('editEstado').value = estado;
+            document.getElementById('editActivo').value = activo;
+            document.getElementById('editObservaciones').value = obs || '';
+            
+            // Configurar el formulario para edición
+            document.getElementById('editarForm').action = '/equipos/editar/' + id;
+            
+            // Mostrar el modal
+            const modal = new bootstrap.Modal(document.getElementById('editarModal'));
+            modal.show();
+        }
+        
+        // Función simple para eliminar equipo
+        function eliminarEquipoSimple(id, info) {
+            if (confirm('¿Estás seguro de que deseas eliminar el equipo: ' + info + '?')) {
+                // Crear formulario dinámico
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/equipos/eliminar/' + id;
+                
+                // Agregar token CSRF
+                const csrfToken = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
+                const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
+                
+                if (csrfToken) {
+                    const csrfInput = document.createElement('input');
+                    csrfInput.type = 'hidden';
+                    csrfInput.name = '_token';
+                    csrfInput.value = csrfToken;
+                    form.appendChild(csrfInput);
+                }
+                
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+    </script>
+</body>
+</html>

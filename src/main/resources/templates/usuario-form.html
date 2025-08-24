@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gestión de Usuarios</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+
+</head>
+<body>
+  <script>
+    function abrirSelector() {
+      document.getElementById('archivos').click();
+    }
+    let selectedFiles = [];
+
+    function updateFileList() {
+      const input = document.getElementById('archivos');
+      const list = document.getElementById('file-list');
+      
+      // Agregar nuevos archivos a los existentes (evitar duplicados)
+      const newFiles = Array.from(input.files);
+      newFiles.forEach(newFile => {
+        const exists = selectedFiles.some(existingFile => 
+          existingFile.name === newFile.name && 
+          existingFile.size === newFile.size &&
+          existingFile.lastModified === newFile.lastModified
+        );
+        if (!exists) {
+          selectedFiles.push(newFile);
+        }
+      });
+      
+      // Actualizar el input con todos los archivos
+      updateInputFiles();
+      
+      // Limpiar lista visual
+      list.innerHTML = '';
+      
+      if (selectedFiles.length === 0) {
+        list.innerHTML = '<div class="text-muted">No hay archivos seleccionados</div>';
+        return;
+      }
+      
+      // Mostrar cada archivo con botón de eliminar
+      selectedFiles.forEach((file, index) => {
+        const div = document.createElement('div');
+        div.className = 'alert alert-light d-flex justify-content-between align-items-center mb-1 py-2';
+        div.innerHTML = `
+          <div>
+            <i class="bi bi-file-earmark text-primary"></i> 
+            <span>${file.name}</span>
+            <small class="text-muted"> (${(file.size / 1024).toFixed(1)} KB)</small>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeFile(${index})">
+            <i class="bi bi-x"></i>
+          </button>
+        `;
+        list.appendChild(div);
+      });
+    }
+
+    function updateInputFiles() {
+      // Crear nuevo FileList con todos los archivos seleccionados
+      const dt = new DataTransfer();
+      selectedFiles.forEach(file => dt.items.add(file));
+      document.getElementById('archivos').files = dt.files;
+    }
+
+    function removeFile(index) {
+      // Remover archivo del array
+      selectedFiles.splice(index, 1);
+      
+      // Crear nuevo FileList con los archivos restantes
+      const dt = new DataTransfer();
+      selectedFiles.forEach(file => dt.items.add(file));
+      
+      // Actualizar el input
+      document.getElementById('archivos').files = dt.files;
+      
+      // Actualizar la lista visual
+      updateFileList();
+    }
+
+    function clearAllFiles() {
+      selectedFiles = [];
+      document.getElementById('archivos').value = '';
+      updateFileList();
+    }
+
+    let equipos = [];
+    let equipoEditando = null;
+
+    function abrirModalEquipo() {
+      document.getElementById('equipoModal').style.display = 'block';
+      limpiarFormularioEquipo();
+    }
+
+    function cerrarModalEquipo() {
+      document.getElementById('equipoModal').style.display = 'none';
+      equipoEditando = null;
+    }
+
+    function limpiarFormularioEquipo() {
+      document.getElementById('equipoForm').reset();
+      document.getElementById('modalTitle').textContent = 'Agregar Equipo Informático';
+      document.getElementById('btnGuardarEquipo').textContent = 'Agregar Equipo';
+    }
+
+    function guardarEquipo() {
+      const form = document.getElementById('equipoForm');
+      const formData = new FormData(form);
+      
+      const equipo = {
+        id: equipoEditando ? equipoEditando.id : Date.now(),
+        tipo: formData.get('tipo'),
+        marca: formData.get('marca'),
+        modelo: formData.get('modelo'),
+        numeroSerie: formData.get('numeroSerie'),
+        numeroInventario: formData.get('numeroInventario'),
+        estado: formData.get('estado'),
+        observaciones: formData.get('observaciones')
+      };
+
+      if (!equipo.tipo || !equipo.marca || !equipo.modelo) {
+        alert('Por favor complete todos los campos requeridos');
+        return;
+      }
+
+      if (equipoEditando) {
+        const index = equipos.findIndex(e => e.id === equipoEditando.id);
+        equipos[index] = equipo;
+      } else {
+        equipos.push(equipo);
+      }
+
+      actualizarListaEquipos();
+      cerrarModalEquipo();
+    }
+
+    function editarEquipo(id) {
+      equipoEditando = equipos.find(e => e.id === id);
+      if (equipoEditando) {
+        document.getElementById('tipo').value = equipoEditando.tipo;
+        document.getElementById('marca').value = equipoEditando.marca;
+        document.getElementById('modelo').value = equipoEditando.modelo;
+        document.getElementById('numeroSerie').value = equipoEditando.numeroSerie;
+        document.getElementById('numeroInventario').value = equipoEditando.numeroInventario;
+        document.getElementById('estado').value = equipoEditando.estado;
+        document.getElementById('observaciones').value = equipoEditando.observaciones;
+        
+        document.getElementById('modalTitle').textContent = 'Editar Equipo Informático';
+        document.getElementById('btnGuardarEquipo').textContent = 'Actualizar Equipo';
+        document.getElementById('equipoModal').style.display = 'block';
+      }
+    }
+
+    function eliminarEquipo(id) {
+      if (confirm('¿Está seguro de que desea eliminar este equipo?')) {
+        equipos = equipos.filter(e => e.id !== id);
+        actualizarListaEquipos();
+      }
+    }
+
+    function actualizarListaEquipos() {
+      const lista = document.getElementById('equipos-lista');
+      lista.innerHTML = '';
+      
+      equipos.forEach(equipo => {
+        const div = document.createElement('div');
+        div.className = 'alert alert-info d-flex justify-content-between align-items-center';
+        div.innerHTML = `
+          <div>
+            <strong>${equipo.tipo}</strong> - ${equipo.marca} ${equipo.modelo}<br>
+            <small>Serie: ${equipo.numeroSerie || 'N/A'} | Estado: ${equipo.estado}</small>
+          </div>
+          <div>
+            <button type="button" class="btn btn-sm btn-warning me-2" onclick="editarEquipo(${equipo.id})">
+              <i class="bi bi-pencil"></i> Editar
+            </button>
+            <button type="button" class="btn btn-sm btn-danger" onclick="eliminarEquipo(${equipo.id})">
+              <i class="bi bi-trash"></i> Eliminar
+            </button>
+          </div>
+        `;
+        lista.appendChild(div);
+      });
+      
+      document.getElementById('equiposJson').value = JSON.stringify(equipos);
+    }
+
+    function buscarUsuario() {
+      const legajo = document.getElementById('buscarLegajo').value.trim();
+      const errorDiv = document.getElementById('busquedaError');
+      
+      if (!legajo) {
+        errorDiv.textContent = 'Por favor ingrese un legajo';
+        errorDiv.style.display = 'block';
+        return;
+      }
+      
+      errorDiv.style.display = 'none';
+      window.location.href = '/usuarios/editar?legajo=' + encodeURIComponent(legajo);
+    }
+
+    window.onclick = function(event) {
+      const modal = document.getElementById('equipoModal');
+      if (event.target === modal) {
+        cerrarModalEquipo();
+      }
+    }
+  </script>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container">
+      <a class="navbar-brand" href="/dashboard">
+        <i class="bi bi-house-door me-2"></i>
+        Sistema de Registro
+      </a>
+      <div class="navbar-nav ms-auto">
+        <a class="nav-link" href="/dashboard">
+          <i class="bi bi-house me-1"></i>Inicio
+        </a>
+        <a class="nav-link" href="/usuarios">
+          <i class="bi bi-people me-1"></i>Lista de Usuarios
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container-fluid py-4">
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        <h1 class="text-center mb-4"><i class="bi bi-people-fill"></i> Gestión de Usuarios</h1>
+        
+        <!-- Búsqueda de Usuario -->
+        <div class="card mb-4">
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-search"></i> Buscar Usuario</h5>
+          </div>
+          <div class="card-body">
+            <div class="input-group">
+              <input type="text" id="buscarLegajo" class="form-control" 
+                     placeholder="Ingrese el legajo del usuario..." 
+                     onkeypress="if(event.key==='Enter') buscarUsuario()" 
+                     oninput="this.value = this.value.toUpperCase()" 
+                     style="text-transform: uppercase;" />
+              <button type="button" onclick="buscarUsuario()" class="btn btn-primary">
+                <i class="bi bi-search"></i> Buscar
+              </button>
+            </div>
+            <div id="busquedaError" class="alert alert-danger mt-2" style="display: none;"></div>
+          </div>
+        </div>
+
+        <!-- Formulario de Creación -->
+        <div class="card">
+          <div class="card-header bg-success text-white">
+            <h5 class="mb-0"><i class="bi bi-person-plus"></i> Crear Nuevo Usuario</h5>
+          </div>
+          <div class="card-body">
+            <div th:if="${mensaje}" class="alert alert-success">
+              <i class="bi bi-check-circle"></i> <span th:text="${mensaje}"></span>
+            </div>
+            <div th:if="${error}" class="alert alert-danger">
+              <i class="bi bi-exclamation-triangle"></i> <span th:text="${error}"></span>
+            </div>
+
+            <form th:action="@{/usuarios}" method="post" enctype="multipart/form-data">
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="legajo" class="form-label">Legajo *</label>
+                  <input type="text" id="legajo" name="legajo" class="form-control" 
+                         th:value="${usuario.legajo}" required 
+                         oninput="this.value = this.value.toUpperCase()" 
+                         style="text-transform: uppercase;" />
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label for="nombre" class="form-label">Nombre *</label>
+                  <input type="text" id="nombre" name="nombre" class="form-control" 
+                         th:value="${usuario.nombre}" required 
+                         oninput="this.value = this.value.toUpperCase()" 
+                         style="text-transform: uppercase;" />
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="apellido" class="form-label">Apellido *</label>
+                  <input type="text" id="apellido" name="apellido" class="form-control" 
+                         th:value="${usuario.apellido}" required 
+                         oninput="this.value = this.value.toUpperCase()" 
+                         style="text-transform: uppercase;" />
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label for="telefono" class="form-label">Teléfono</label>
+                  <input type="text" id="telefono" name="telefono" class="form-control" 
+                         th:value="${usuario.telefono}" 
+                         oninput="this.value = this.value.toUpperCase()" 
+                         style="text-transform: uppercase;" />
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="correoElectronico" class="form-label">Correo Electrónico *</label>
+                  <input type="email" id="correoElectronico" name="correoElectronico" class="form-control" 
+                         th:value="${usuario.correoElectronico}" required />
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label for="direccion" class="form-label">Dirección</label>
+                  <input type="text" id="direccion" name="direccion" class="form-control" 
+                         th:value="${usuario.direccion}" 
+                         oninput="this.value = this.value.toUpperCase()" 
+                         style="text-transform: uppercase;" />
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label for="site" class="form-label">Site *</label>
+                <select id="site" name="site" class="form-select" required>
+                  <option th:each="s : ${T(com.registro.model.Site).values()}"
+                          th:value="${s}" th:text="${s.label}"
+                          th:selected="${s} == ${usuario.site}">
+                  </option>
+                </select>
+              </div>
+
+              <!-- Archivos -->
+              <div class="mb-3">
+                <label class="form-label">Archivos</label>
+                <input type="file" id="archivos" name="archivos" multiple style="display:none" 
+                       onchange="updateFileList()" />
+                <div class="d-flex gap-2 mb-2">
+                  <button type="button" class="btn btn-outline-secondary" onclick="abrirSelector()">
+                    <i class="bi bi-paperclip"></i> Seleccionar archivos
+                  </button>
+                  <button type="button" class="btn btn-outline-warning" onclick="clearAllFiles()">
+                    <i class="bi bi-trash"></i> Limpiar todo
+                  </button>
+                </div>
+                <div id="file-list" class="mt-2"></div>
+              </div>
+
+              <!-- Equipos Informáticos -->
+              <div class="mb-3">
+                <label class="form-label">Equipos Informáticos</label>
+                
+                <!-- Equipos ya asignados (si los hay) -->
+                <div id="equipos-asignados" class="mb-3" style="display: none;">
+                  <h6>Equipos Asignados:</h6>
+                  <div id="lista-equipos-asignados"></div>
+                </div>
+                
+                <!-- Botón para asignar equipos existentes -->
+                <div class="d-flex gap-2 mb-3">
+                  <button type="button" class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#asignarEquipoModal">
+                    <i class="bi bi-link me-2"></i> Asignar Equipo Existente
+                  </button>
+                  <small class="text-muted align-self-center ms-3">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Selecciona equipos disponibles del inventario para asignar al usuario
+                  </small>
+                </div>
+                
+                <input type="hidden" id="equiposJson" name="equiposJson" value="[]" />
+              </div>
+
+              <div class="text-center">
+                <button type="submit" class="btn btn-success btn-lg">
+                  <i class="bi bi-check-circle"></i> Crear Usuario
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para Equipos -->
+  <div id="equipoModal" class="modal" style="display: none;">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 id="modalTitle" class="modal-title">Agregar Equipo Informático</h5>
+          <button type="button" class="btn-close" onclick="cerrarModalEquipo()"></button>
+        </div>
+        <div class="modal-body">
+          <form id="equipoForm">
+            <div class="mb-3">
+              <label for="tipo" class="form-label">Tipo de Equipo *</label>
+              <select id="tipo" name="tipo" class="form-select" required onchange="toggleEspecificacionField()">
+                <option value="">Seleccionar</option>
+                <option value="CPU">CPU</option>
+                <option value="MONITOR">Monitor</option>
+                <option value="NOTEBOOK">Notebook</option>
+                <option value="ONLY_ONE">Only One</option>
+                <option value="MOUSE">Mouse</option>
+                <option value="TECLADO">Teclado</option>
+                <option value="VINCHA">Vincha</option>
+                <option value="CABLES">Cables (especificar)</option>
+                <option value="ROUTER">Router</option>
+                <option value="SWITCH">Switch</option>
+                <option value="SERVIDORES">Servidores</option>
+                <option value="PROYECTORES">Proyectores</option>
+                <option value="OTROS">Otros (especificar)</option>
+              </select>
+            </div>
+            <div id="especificacionField" class="mb-3" style="display: none;">
+              <label for="especificacion" class="form-label">Especificar *</label>
+              <input type="text" id="especificacion" name="especificacion" class="form-control" placeholder="Especifique el tipo de equipo..." 
+                     oninput="this.value = this.value.toUpperCase()" 
+                     style="text-transform: uppercase;" />
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="marca" class="form-label">Marca *</label>
+                <input type="text" id="marca" name="marca" class="form-control" required 
+                       oninput="this.value = this.value.toUpperCase()" 
+                       style="text-transform: uppercase;" />
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="modelo" class="form-label">Modelo *</label>
+                <input type="text" id="modelo" name="modelo" class="form-control" required 
+                       oninput="this.value = this.value.toUpperCase()" 
+                       style="text-transform: uppercase;" />
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="numeroSerie" class="form-label">Número de Serie</label>
+                <input type="text" id="numeroSerie" name="numeroSerie" class="form-control" 
+                       oninput="this.value = this.value.toUpperCase()" 
+                       style="text-transform: uppercase;" />
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="numeroInventario" class="form-label">Número de Inventario</label>
+                <input type="text" id="numeroInventario" name="numeroInventario" class="form-control" 
+                       oninput="this.value = this.value.toUpperCase()" 
+                       style="text-transform: uppercase;" />
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="estado" class="form-label">Estado</label>
+              <select id="estado" name="estado" class="form-select">
+                <option value="ACTIVO">Activo</option>
+                <option value="EN_REPARACION">En Reparación</option>
+                <option value="DADO_DE_BAJA">Dado de Baja</option>
+                <option value="EN_MANTENIMIENTO">En Mantenimiento</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label for="observaciones" class="form-label">Observaciones</label>
+              <textarea id="observaciones" name="observaciones" class="form-control" rows="3" 
+                        oninput="this.value = this.value.toUpperCase()" 
+                        style="text-transform: uppercase;"></textarea>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="btnGuardarEquipo" class="btn btn-primary" onclick="guardarEquipo()">
+            Agregar Equipo
+          </button>
+          <button type="button" class="btn btn-secondary" onclick="cerrarModalEquipo()">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para asignar equipo existente -->
+  <div class="modal fade" id="asignarEquipoModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-link me-2"></i>Asignar Equipo Existente</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <!-- Filtros por tipo de equipo -->
+          <div class="mb-4">
+            <h6 class="mb-3"><i class="bi bi-funnel me-2"></i>Filtrar por Tipo de Equipo</h6>
+            <div class="row">
+              <div class="col-md-12">
+                <div class="btn-group-vertical d-md-none w-100 mb-3" role="group">
+                  <button type="button" class="btn btn-outline-primary active" onclick="filtrarPorTipo('TODOS')" id="btn-TODOS">
+                    <i class="bi bi-grid me-2"></i>Seleccionar
+                  </button>
+                  <button type="button" class="btn btn-outline-primary" onclick="filtrarPorTipo('CPU')" id="btn-CPU">
+                    <i class="bi bi-cpu me-2"></i>CPU
+                  </button>
+                  <button type="button" class="btn btn-outline-primary" onclick="filtrarPorTipo('MONITOR')" id="btn-MONITOR">
+                    <i class="bi bi-display me-2"></i>Monitor
+                  </button>
+                  <button type="button" class="btn btn-outline-primary" onclick="filtrarPorTipo('NOTEBOOK')" id="btn-NOTEBOOK">
+                    <i class="bi bi-laptop me-2"></i>Notebook
+                  </button>
+                  <button type="button" class="btn btn-outline-primary" onclick="filtrarPorTipo('ONLY_ONE')" id="btn-ONLY_ONE">
+                    <i class="bi bi-1-circle me-2"></i>Only One
+                  </button>
+                  <button type="button" class="btn btn-outline-primary" onclick="filtrarPorTipo('MOUSE')" id="btn-MOUSE">
+                    <i class="bi bi-mouse me-2"></i>Mouse
+                  </button>
+                  <button type="button" class="btn btn-outline-primary" onclick="filtrarPorTipo('TECLADO')" id="btn-TECLADO">
+                    <i class="bi bi-keyboard me-2"></i>Teclado
+                  </button>
+                  <button type="button" class="btn btn-outline-primary" onclick="filtrarPorTipo('VINCHA')" id="btn-VINCHA">
+                    <i class="bi bi-headphones me-2"></i>Vincha
+                  </button>
+                  <button type="button" class="btn btn-outline-primary" onclick="filtrarPorTipo('CABLES')" id="btn-CABLES">
+                    <i class="bi bi-bezier me-2"></i>Cables (especificar)
+                  </button>
+                  <button type="button" class="btn btn-outline-primary" onclick="filtrarPorTipo('ROUTER')" id="btn-ROUTER">
+                    <i class="bi bi-router me-2"></i>Router
+                  </button>
+                  <button type="button" class="btn btn-outline-primary" onclick="filtrarPorTipo('SWITCH')" id="btn-SWITCH">
+                    <i class="bi bi-diagram-3 me-2"></i>Switch
+                  </button>
+                  <button type="button" class="btn btn-outline-primary" onclick="filtrarPorTipo('SERVIDORES')" id="btn-SERVIDORES">
+                    <i class="bi bi-server me-2"></i>Servidores
+                  </button>
+                  <button type="button" class="btn btn-outline-primary" onclick="filtrarPorTipo('PROYECTORES')" id="btn-PROYECTORES">
+                    <i class="bi bi-projector me-2"></i>Proyectores
+                  </button>
+                  <button type="button" class="btn btn-outline-primary" onclick="filtrarPorTipo('OTROS')" id="btn-OTROS">
+                    <i class="bi bi-three-dots me-2"></i>Otros (especificar)
+                  </button>
+                </div>
+                
+                <div class="btn-group d-none d-md-flex flex-wrap" role="group">
+                  <button type="button" class="btn btn-outline-primary active" onclick="filtrarPorTipo('TODOS')" id="btn-TODOS-desktop">
+                    <i class="bi bi-grid me-1"></i>Seleccionar
+                  </button>
+                  <button type="button" class="btn btn-outline-primary" onclick="filtrarPorTipo('CPU')" id="btn-CPU-desktop">
+                    <i class="bi bi-cpu me-1"></i>CPU
+                  </button>
+                  <button type="button" class="btn btn-outline-primary" onclick="filtrarPorTipo('MONITOR')" id="btn-MONITOR-desktop">
+                    <i class="bi bi-display me-1"></i>Monitor
+                  </button>
+                  <button type="button" class="btn btn-outline-primary" onclick="filtrarPorTipo('NOTEBOOK')" id="btn-NOTEBOOK-desktop">
+                    <i class="bi bi-laptop me-1"></i>Notebook
+                  </button>
+                  <button type="button" class="btn btn-outline-primary" onclick="filtrarPorTipo('ONLY_ONE')" id="btn-ONLY_ONE-desktop">
+                    <i class="bi bi-1-circle me-1"></i>Only One
+                  </button>
+                  <button type="button" class="btn btn-outline-primary" onclick="filtrarPorTipo('MOUSE')" id="btn-MOUSE-desktop">
+                    <i class="bi bi-mouse me-1"></i>Mouse
+                  </button>
+                  <button type="button" class="btn btn-outline-primary" onclick="filtrarPorTipo('TECLADO')" id="btn-TECLADO-desktop">
+                    <i class="bi bi-keyboard me-1"></i>Teclado
+                  </button>
+                  <button type="button" class="btn btn-outline-primary" onclick="filtrarPorTipo('VINCHA')" id="btn-VINCHA-desktop">
+                    <i class="bi bi-headphones me-1"></i>Vincha
+                  </button>
+                  <button type="button" class="btn btn-outline-primary" onclick="filtrarPorTipo('CABLES')" id="btn-CABLES-desktop">
+                    <i class="bi bi-bezier me-1"></i>Cables
+                  </button>
+                  <button type="button" class="btn btn-outline-primary" onclick="filtrarPorTipo('ROUTER')" id="btn-ROUTER-desktop">
+                    <i class="bi bi-router me-1"></i>Router
+                  </button>
+                  <button type="button" class="btn btn-outline-primary" onclick="filtrarPorTipo('SWITCH')" id="btn-SWITCH-desktop">
+                    <i class="bi bi-diagram-3 me-1"></i>Switch
+                  </button>
+                  <button type="button" class="btn btn-outline-primary" onclick="filtrarPorTipo('SERVIDORES')" id="btn-SERVIDORES-desktop">
+                    <i class="bi bi-server me-1"></i>Servidores
+                  </button>
+                  <button type="button" class="btn btn-outline-primary" onclick="filtrarPorTipo('PROYECTORES')" id="btn-PROYECTORES-desktop">
+                    <i class="bi bi-projector me-1"></i>Proyectores
+                  </button>
+                  <button type="button" class="btn btn-outline-primary" onclick="filtrarPorTipo('OTROS')" id="btn-OTROS-desktop">
+                    <i class="bi bi-three-dots me-1"></i>Otros
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Campo de búsqueda en tiempo real -->
+          <div class="mb-3">
+            <div class="input-group">
+              <span class="input-group-text">
+                <i class="bi bi-search"></i>
+              </span>
+              <input type="text" 
+                     class="form-control" 
+                     id="buscarEquipo" 
+                     placeholder="Buscar por número de serie, inventario, marca o modelo..." 
+                     onkeyup="aplicarFiltros()">
+              <button class="btn btn-outline-secondary" type="button" onclick="limpiarBusqueda()">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
+            <small class="text-muted">
+              <i class="bi bi-lightbulb me-1"></i>
+              Busca equipos por número de serie, inventario, marca o modelo en tiempo real
+            </small>
+          </div>
+          
+          <!-- Contador de resultados -->
+          <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center">
+              <h6 class="mb-0" id="contadorResultados">
+                <i class="bi bi-laptop me-2"></i>Equipos Disponibles
+              </h6>
+              <small class="text-muted" id="tipoSeleccionado">Mostrando todos los tipos</small>
+            </div>
+            <hr class="my-2">
+          </div>
+          
+          <!-- Lista de equipos -->
+          <div id="equiposDisponibles" style="max-height: 400px; overflow-y: auto;">
+            <div class="text-center py-4">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando equipos disponibles...</span>
+              </div>
+              <p class="mt-2 text-muted">Cargando equipos disponibles...</p>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            <i class="bi bi-x-circle me-2"></i>Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // ===== FUNCIONES PARA ASIGNAR EQUIPOS EXISTENTES =====
+    
+    // Variables globales para equipos
+    let equiposDisponiblesGlobal = [];
+    let tipoSeleccionado = 'TODOS';
+    let equiposAsignados = [];
+    
+    // Inicializar cuando se abre el modal
+    document.addEventListener('DOMContentLoaded', function() {
+      const modalElement = document.getElementById('asignarEquipoModal');
+      if (modalElement) {
+        modalElement.addEventListener('shown.bs.modal', function () {
+          cargarEquiposDisponibles();
+        });
+      }
+    });
+    
+    function cargarEquiposDisponibles() {
+      const container = document.getElementById('equiposDisponibles');
+      
+      // Limpiar campo de búsqueda
+      document.getElementById('buscarEquipo').value = '';
+      
+      // Mostrar spinner de carga
+      container.innerHTML = `
+        <div class="text-center py-4">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Cargando equipos disponibles...</span>
+          </div>
+          <p class="mt-2 text-muted">Cargando equipos disponibles...</p>
+        </div>
+      `;
+      
+      // Obtener todos los equipos
+      fetch('/equipos/debug/reporte')
+        .then(response => response.json())
+        .then(data => {
+          console.log('Datos recibidos del backend:', data); // Debug
+          
+          // El backend devuelve { totalEquipos: X, equipos: [...] }
+          const equipos = data.equipos || [];
+          
+          // Filtrar solo equipos sin asignar (usuario === "Sin asignar")
+          equiposDisponiblesGlobal = equipos.filter(equipo => 
+            !equipo.usuario || equipo.usuario === 'Sin asignar' || equipo.usuario.trim() === ''
+          );
+          
+          console.log('Equipos disponibles filtrados:', equiposDisponiblesGlobal); // Debug
+          aplicarFiltros();
+        })
+        .catch(error => {
+          console.error('Error cargando equipos:', error);
+          document.getElementById('equiposDisponibles').innerHTML = 
+            '<div class="alert alert-danger"><i class="bi bi-exclamation-triangle me-2"></i>Error cargando equipos disponibles</div>';
+        });
+    }
+    
+    // Función para filtrar por tipo de equipo
+    function filtrarPorTipo(tipo) {
+      tipoSeleccionado = tipo;
+      
+      // Actualizar botones activos (mobile y desktop)
+      document.querySelectorAll('[id^="btn-"]').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      
+      const btnMobile = document.getElementById(`btn-${tipo}`);
+      const btnDesktop = document.getElementById(`btn-${tipo}-desktop`);
+      
+      if (btnMobile) btnMobile.classList.add('active');
+      if (btnDesktop) btnDesktop.classList.add('active');
+      
+      // Actualizar texto indicador
+      const tipoTexto = tipo === 'TODOS' ? 'todos los tipos' : tipo.toLowerCase();
+      document.getElementById('tipoSeleccionado').textContent = `Mostrando: ${tipoTexto}`;
+      
+      aplicarFiltros();
+    }
+    
+    function mapearTipoFrontendABackend(tipoFrontend) {
+      const mapeo = {
+        'CPU': 'CPU',
+        'MONITOR': 'Monitor',
+        'NOTEBOOK': 'Notebook', 
+        'ONLY_ONE': 'Only One',
+        'MOUSE': 'Mouse',
+        'TECLADO': 'Teclado',
+        'VINCHA': 'Vincha',
+        'CABLES': 'Cables (especificar)',
+        'ROUTER': 'Router',
+        'SWITCH': 'Switch',
+        'SERVIDORES': 'Servidores',
+        'PROYECTORES': 'Proyectores',
+        'OTROS': 'Otros (especificar)'
+      };
+      return mapeo[tipoFrontend] || tipoFrontend;
+    }
+
+    // Función para aplicar todos los filtros (tipo + búsqueda)
+    function aplicarFiltros() {
+      const busqueda = document.getElementById('buscarEquipo').value.toLowerCase();
+      
+      let equiposFiltrados = equiposDisponiblesGlobal;
+      
+      // Filtrar por tipo
+      if (tipoSeleccionado !== 'TODOS') {
+        equiposFiltrados = equiposFiltrados.filter(equipo => {
+          // Mapear tipos del frontend a backend para comparación
+          const tipoBackend = mapearTipoFrontendABackend(tipoSeleccionado);
+          return equipo.tipo === tipoBackend || equipo.tipo === tipoSeleccionado;
+        });
+      }
+      
+      // Filtrar por búsqueda
+      if (busqueda.trim() !== '') {
+        equiposFiltrados = equiposFiltrados.filter(equipo => {
+          const numeroSerie = (equipo.numeroSerie || '').toLowerCase();
+          const numeroInventario = (equipo.numeroInventario || '').toLowerCase();
+          const marca = (equipo.marca || '').toLowerCase();
+          const modelo = (equipo.modelo || '').toLowerCase();
+          const tipo = (equipo.tipo || '').toLowerCase();
+          const site = (equipo.site || '').toLowerCase();
+          
+          return numeroSerie.includes(busqueda) || 
+                 numeroInventario.includes(busqueda) ||
+                 marca.includes(busqueda) ||
+                 modelo.includes(busqueda) ||
+                 tipo.includes(busqueda) ||
+                 site.includes(busqueda);
+        });
+      }
+      
+      mostrarEquiposDisponibles(equiposFiltrados);
+      actualizarContador(equiposFiltrados.length, equiposDisponiblesGlobal.length);
+    }
+    
+    // Función para actualizar contador de resultados
+    function actualizarContador(mostrados, total) {
+      const contador = document.getElementById('contadorResultados');
+      if (mostrados === total) {
+        contador.innerHTML = `<i class="bi bi-laptop me-2"></i>Equipos Disponibles (${total})`;
+      } else {
+        contador.innerHTML = `<i class="bi bi-funnel me-2"></i>Equipos Filtrados (${mostrados} de ${total})`;
+      }
+    }
+    
+    // Función para mostrar equipos disponibles
+    function mostrarEquiposDisponibles(equipos) {
+      const container = document.getElementById('equiposDisponibles');
+      
+      if (equipos.length === 0) {
+        const mensaje = tipoSeleccionado === 'TODOS' ? 
+          'No hay equipos disponibles' : 
+          `No hay equipos de tipo ${tipoSeleccionado} disponibles`;
+          
+        container.innerHTML = `
+          <div class="text-center py-4">
+            <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
+            <h6 class="text-muted mt-2">${mensaje}</h6>
+            <p class="text-muted small">Prueba con otro tipo de equipo o limpia los filtros.</p>
+            <button class="btn btn-outline-primary btn-sm" onclick="limpiarFiltros()">
+              <i class="bi bi-arrow-clockwise me-2"></i>Limpiar Filtros
+            </button>
+          </div>
+        `;
+        return;
+      }
+      
+      let html = '<div class="row">';
+      equipos.forEach(equipo => {
+        const numeroSerie = equipo.numeroSerie || 'N/A';
+        const numeroInventario = equipo.numeroInventario || 'N/A';
+        const estado = equipo.estado || 'ACTIVO';
+        const estadoClass = estado === 'ACTIVO' ? 'success' : 'warning';
+        
+        // Icono según tipo de equipo
+        let icono = 'bi-laptop';
+        const tipoEquipo = equipo.tipo.toUpperCase();
+        switch(tipoEquipo) {
+          case 'CPU': icono = 'bi-cpu'; break;
+          case 'MONITOR': icono = 'bi-display'; break;
+          case 'NOTEBOOK': icono = 'bi-laptop'; break;
+          case 'ONLY ONE': icono = 'bi-1-circle'; break;
+          case 'MOUSE': icono = 'bi-mouse'; break;
+          case 'TECLADO': icono = 'bi-keyboard'; break;
+          case 'VINCHA': icono = 'bi-headphones'; break;
+          case 'CABLES': 
+          case 'CABLES (ESPECIFICAR)': icono = 'bi-bezier'; break;
+          case 'ROUTER': icono = 'bi-router'; break;
+          case 'SWITCH': icono = 'bi-diagram-3'; break;
+          case 'SERVIDORES': icono = 'bi-server'; break;
+          case 'PROYECTORES': icono = 'bi-projector'; break;
+          case 'OTROS':
+          case 'OTROS (ESPECIFICAR)': icono = 'bi-three-dots'; break;
+          default: icono = 'bi-laptop';
+        }
+        
+        html += `
+          <div class="col-lg-6 col-xl-4 mb-3">
+            <div class="card h-100 shadow-sm border-0">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <h6 class="card-title mb-0">
+                    <i class="${icono} me-2 text-primary"></i>
+                    ${equipo.tipo}
+                  </h6>
+                  <span class="badge bg-${estadoClass}">${estado}</span>
+                </div>
+                
+                <p class="card-text mb-2">
+                  <strong>${equipo.marca}</strong> ${equipo.modelo}<br>
+                  <small class="text-muted">
+                    <i class="bi bi-geo-alt me-1"></i>${equipo.site} | ID: ${equipo.id}
+                  </small>
+                </p>
+                
+                <div class="mb-3">
+                  <div class="d-flex align-items-center mb-1">
+                    <i class="bi bi-hash text-info me-2"></i>
+                    <small><strong>Serie:</strong> ${numeroSerie}</small>
+                  </div>
+                  <div class="d-flex align-items-center">
+                    <i class="bi bi-tag text-warning me-2"></i>
+                    <small><strong>Inventario:</strong> ${numeroInventario}</small>
+                  </div>
+                </div>
+                
+                <button class="btn btn-primary btn-sm w-100" 
+                        onclick="asignarEquipoParaNuevoUsuario(${equipo.id}, '${equipo.tipo}', '${equipo.marca}', '${equipo.modelo}', '${numeroSerie}', '${numeroInventario}', '${estado}')">
+                  <i class="bi bi-check-circle me-2"></i>Asignar
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+      html += '</div>';
+      
+      container.innerHTML = html;
+    }
+    
+    // Función para limpiar la búsqueda
+    function limpiarBusqueda() {
+      document.getElementById('buscarEquipo').value = '';
+      aplicarFiltros();
+    }
+    
+    // Función para limpiar todos los filtros
+    function limpiarFiltros() {
+      document.getElementById('buscarEquipo').value = '';
+      filtrarPorTipo('TODOS');
+    }
+    
+    // Función para asignar equipo para nuevo usuario
+    function asignarEquipoParaNuevoUsuario(id, tipo, marca, modelo, numeroSerie, numeroInventario, estado) {
+      // Agregar equipo a la lista de equipos asignados
+      const equipoAsignado = {
+        id: id,
+        tipo: tipo,
+        marca: marca,
+        modelo: modelo,
+        numeroSerie: numeroSerie,
+        numeroInventario: numeroInventario,
+        estado: estado
+      };
+      
+      equiposAsignados.push(equipoAsignado);
+      
+      // Actualizar el JSON oculto
+      document.getElementById('equiposJson').value = JSON.stringify(equiposAsignados);
+      
+      // Mostrar el equipo en la lista de asignados
+      actualizarListaEquiposAsignados();
+      
+      // Mostrar mensaje de éxito
+      mostrarMensaje('success', `✅ Equipo ${tipo} agregado a la lista`);
+      
+      // Cerrar modal
+      const modal = bootstrap.Modal.getInstance(document.getElementById('asignarEquipoModal'));
+      modal.hide();
+    }
+    
+    // Función para actualizar la lista de equipos asignados
+    function actualizarListaEquiposAsignados() {
+      const container = document.getElementById('lista-equipos-asignados');
+      const sectionContainer = document.getElementById('equipos-asignados');
+      
+      if (equiposAsignados.length === 0) {
+        sectionContainer.style.display = 'none';
+        return;
+      }
+      
+      sectionContainer.style.display = 'block';
+      
+      let html = '';
+      equiposAsignados.forEach((equipo, index) => {
+        html += `
+          <div class="alert alert-info d-flex justify-content-between align-items-center mb-2">
+            <div>
+              <strong>${equipo.tipo}</strong> - ${equipo.marca} ${equipo.modelo}<br>
+              <small class="text-muted">
+                Serie: ${equipo.numeroSerie} | Inventario: ${equipo.numeroInventario}
+              </small>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-danger" 
+                    onclick="removerEquipoAsignado(${index})">
+              <i class="bi bi-x"></i>
+            </button>
+          </div>
+        `;
+      });
+      
+      container.innerHTML = html;
+    }
+    
+    // Función para remover equipo asignado
+    function removerEquipoAsignado(index) {
+      equiposAsignados.splice(index, 1);
+      document.getElementById('equiposJson').value = JSON.stringify(equiposAsignados);
+      actualizarListaEquiposAsignados();
+    }
+    
+    // Función para mostrar mensajes de estado
+    function mostrarMensaje(tipo, mensaje) {
+      const alertClass = tipo === 'success' ? 'alert-success' : 'alert-danger';
+      const alertHtml = `
+        <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+          ${mensaje}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      `;
+      
+      // Insertar el mensaje al inicio del modal body
+      const modalBody = document.querySelector('#asignarEquipoModal .modal-body');
+      modalBody.insertAdjacentHTML('afterbegin', alertHtml);
+      
+      // Auto-remover después de 3 segundos
+      setTimeout(() => {
+        const alert = modalBody.querySelector('.alert');
+        if (alert) {
+          alert.remove();
+        }
+      }, 3000);
+    }
+    
+    // Función legacy para especificación (mantener compatibilidad)
+    function toggleEspecificacionField() {
+      console.log('toggleEspecificacionField llamada'); // Debug
+      const tipoSelect = document.getElementById('tipo');
+      const especificacionField = document.getElementById('especificacionField');
+      const especificacionInput = document.getElementById('especificacion');
+      
+      console.log('Valor seleccionado:', tipoSelect.value); // Debug
+      
+      if (tipoSelect.value === 'CABLES' || tipoSelect.value === 'OTROS') {
+        console.log('Mostrando campo de especificación'); // Debug
+        especificacionField.style.display = 'block';
+        especificacionInput.required = true;
+      } else {
+        console.log('Ocultando campo de especificación'); // Debug
+        especificacionField.style.display = 'none';
+        especificacionInput.required = false;
+        especificacionInput.value = '';
+      }
+    }
+  </script>
+</body>
+</html>
